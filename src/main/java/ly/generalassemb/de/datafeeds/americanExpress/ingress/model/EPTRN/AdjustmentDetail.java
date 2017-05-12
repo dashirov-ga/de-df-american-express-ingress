@@ -35,11 +35,9 @@ import java.util.regex.Pattern;
         "SERVICE_FEE_RATE",
         "CARDMEMBER_NUMBER",
         "ADJUSTMENT_REASON"
-
-
 })
 public class AdjustmentDetail {
-    public final static Pattern pattern = Pattern.compile("^(?<dataFileHeaderRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileHeaderDate>\\p{Digit}{8})(?<dataFileHeaderTime>\\p{Digit}{4})(?<dataFileHeaderFileID>\\p{Digit}{6})(?<dataFileHeaderFileName>[\\p{Alnum}\\p{Space}]{1,20})[\\p{Space}]{0,407}");
+    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Alnum}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum}{1})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>2)(?<detailRecordType>30)(?<amexProcessDate>(?<amexProcessDateYear>\\p{Digit}{4})(?<amexProcessJulianDate>\\p{Digit}{3}))(?<adjustmentNumber>\\p{Digit}{6})(?<adjustmentAmount>(?<adjustmentAmountPrefix>\\p{Digit}{8})(?<adjustmentAmountSuffix>[A-R}{]{1}))(?<discountAmount>(?<discountAmountPrefix>\\p{Digit}{8})(?<discountAmountSuffix>[A-R}{]{1}))(?<serviceFeeAmount>(?<serviceFeeAmountPrefix>\\p{Digit}{6})(?<serviceFeeAmountSuffix>[A-R}{]{1}))(?<filler13>000000\\{)(?<netAdjustmentAmount>(?<netAdjustmentAmountPrefix>\\p{Digit}{8})(?<netAdjustmentAmountSuffix>[A-R}{]{1}))(?<discountRate>\\p{Digit}{5})(?<serviceFeeRate>\\p{Digit}{5})(?<filler17>00000)(?<filler18>0000000000\\{)(?<cardmemberNumber>\\p{Alnum}{17})(?<adjustmentReason>[\\p{ASCII}]{280})(?<filler21>\\p{ASCII}{3})(?<filler22>\\p{ASCII}{3})(?<filler23>\\p{Blank}{15})(?<filler24>\\p{ASCII}{1})(?<filler25>\\p{ASCII}{6})$");
 
 
     /**
@@ -201,7 +199,7 @@ public class AdjustmentDetail {
     @JsonProperty("CARDMEMBER_NUMBER")
     @Size(max = 17)
     @NotNull
-    String cardmemberNumber;
+    String cardMemberNumber;
 
 
     @JsonProperty("ADJUSTMENT_REASON")
@@ -288,8 +286,8 @@ public class AdjustmentDetail {
         return this;
     }
 
-    public AdjustmentDetail withCardmemberNumber(String cardmemberNumber) {
-        this.cardmemberNumber = cardmemberNumber;
+    public AdjustmentDetail withCardMemberNumber(String cardMemberNumber) {
+        this.cardMemberNumber = cardMemberNumber;
         return this;
     }
 
@@ -422,12 +420,12 @@ public class AdjustmentDetail {
         this.serviceFeeRate = serviceFeeRate;
     }
 
-    public String getCardmemberNumber() {
-        return cardmemberNumber;
+    public String getCardMemberNumber() {
+        return cardMemberNumber;
     }
 
-    public void setCardMemberNumber(String cardmemberNumber) {
-        this.cardmemberNumber = cardmemberNumber;
+    public void setCardMemberNumber(String cardMemberNumber) {
+        this.cardMemberNumber = cardMemberNumber;
     }
 
     public String getAdjustmentReason() {
@@ -473,7 +471,7 @@ public class AdjustmentDetail {
                 .append(getNetAdjustmentAmount(), that.getNetAdjustmentAmount())
                 .append(getDiscountRate(), that.getDiscountRate())
                 .append(getServiceFeeRate(), that.getServiceFeeRate())
-                .append(getCardmemberNumber(), that.getCardmemberNumber())
+                .append(getCardMemberNumber(), that.getCardMemberNumber())
                 .append(getAdjustmentReason(), that.getAdjustmentReason())
                 .isEquals();
     }
@@ -496,7 +494,7 @@ public class AdjustmentDetail {
                 .append(getNetAdjustmentAmount())
                 .append(getDiscountRate())
                 .append(getServiceFeeRate())
-                .append(getCardmemberNumber())
+                .append(getCardMemberNumber())
                 .append(getAdjustmentReason())
                 .toHashCode();
     }
