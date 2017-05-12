@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
 
 })
 public class ROCDetail {
-    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Digit}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>3)(?<detailRecordType>11)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessingDate>(?<amexProcessingDateYear>\\p{Digit}{4})(?<amexProcessingDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socAmount>(?<socAmountPrefix>\\p{Digit}{12})(?<socAmountSuffix>[A-R}{]{1}))(?<rocAmount>(?<rocAmountPrefix>\\p{Digit}{12})(?<rocAmountSuffix>[A-R}{]{1}))(?<cardMemberNumber>[\\p{Blank}\\p{Alnum}]{15})(?<cardMemberReferenceNumber>[\\p{Blank}\\p{Alnum}]{11}).{9}\\p{Blank}{10}(?<rocNumber>[\\p{Alnum}\\p{Blank}]{10})(?<transactionDate>(?<transactionDateYear>\\p{Digit}{4})(?<transactionJulianDate>\\p{Digit}{3}))(?<invoiceReferenceNumber>[\\p{Alnum}\\p{Blank}]{30})(?<nonCompliantIndicator>[ AN~]{1})(?<nonCompliantErrorCode1>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode2>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode3>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode4>[\\p{Alnum}\\p{Blank}]{4})(?<nonSwipedIndicator>[ CH~Z]{1})[\\p{Blank}\\p{Alnum}]{1}.{4}.{22}(?<cardMemberNumberUsedInTransaction>[\\p{Blank}\\p{Alnum}]{19})(?<filler30>\\p{Blank}{203})$");
+    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Digit}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>3)(?<detailRecordType>11)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessingDate>(?<amexProcessingDateYear>\\p{Digit}{4})(?<amexProcessingDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socAmount>(?<socAmountPrefix>\\p{Digit}{12})(?<socAmountSuffix>[A-R}{]{1}))(?<rocAmount>(?<rocAmountPrefix>\\p{Digit}{12})(?<rocAmountSuffix>[A-R}{]{1}))(?<cardMemberNumber>[\\p{Blank}\\p{Alnum}]{15})(?<cardMemberReferenceNumber>[\\p{Blank}\\p{Alnum}]{11}).{9}\\p{Blank}{10}(?<rocNumber>[\\p{Alnum}\\p{Blank}]{10})(?<transactionDate>(?<transactionDateYear>\\p{Digit}{4})(?<transactionJulianDate>\\p{Digit}{3}))(?<invoiceReferenceNumber>[\\p{Alnum}\\p{Blank}]{30})(?<nonCompliantIndicator>[ AN]{1})(?<nonCompliantErrorCode1>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode2>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode3>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode4>[\\p{Alnum}\\p{Blank}]{4})(?<nonSwipedIndicator>[ CH~Z]{1})[\\p{Blank}\\p{Alnum}]{1}.{4}.{22}(?<cardMemberNumberExtended>[\\p{Blank}\\p{Alnum}]{19})(?<filler30>\\p{Blank}{203})$");
 
     @JsonProperty("TLRR_AMEX_PAYEE_NUMBER")
     @Size(max = 10)
@@ -217,7 +217,7 @@ public class ROCDetail {
     @JsonProperty("TLRR_CM_NUMBER_EXD")
     @NotNull
     @Size(max = 19)
-    private String cardmemberNumberExtended;
+    private String cardMemberNumberExtended;
 
 
     public ROCDetail() {
@@ -399,8 +399,12 @@ public class ROCDetail {
         this.nonSwipedIndicator = nonSwipedIndicator;
     }
 
-    public String getCardmemberNumberExtended() {
-        return cardmemberNumberExtended;
+    public String getCardMemberNumberExtended() {
+        return cardMemberNumberExtended;
+    }
+
+    public void setCardMemberNumberExtended(String cardMemberNumberExtended) {
+        this.cardMemberNumberExtended = cardMemberNumberExtended;
     }
 
     public ROCDetail withAmexPayeeNumber(Long amexPayeeNumber) {
@@ -513,8 +517,8 @@ public class ROCDetail {
         return this;
     }
 
-    public ROCDetail withCardmemberNumberExtended(String cardmemberNumberExtended) {
-        this.cardmemberNumberExtended = cardmemberNumberExtended;
+    public ROCDetail withCardMemberNumberExtended(String cardMemberNumberExtended) {
+        this.cardMemberNumberExtended = cardMemberNumberExtended;
         return this;
     }
 
@@ -561,7 +565,7 @@ public class ROCDetail {
                 .append(getNonCompliantErrorCode3(), rocDetail.getNonCompliantErrorCode3())
                 .append(getNonCompliantErrorCode4(), rocDetail.getNonCompliantErrorCode4())
                 .append(getNonSwipedIndicator(), rocDetail.getNonSwipedIndicator())
-                .append(getCardmemberNumberExtended(), rocDetail.getCardmemberNumberExtended())
+                .append(getCardMemberNumberExtended(), rocDetail.getCardMemberNumberExtended())
                 .isEquals();
     }
 
@@ -590,7 +594,7 @@ public class ROCDetail {
                 .append(getNonCompliantErrorCode3())
                 .append(getNonCompliantErrorCode4())
                 .append(getNonSwipedIndicator())
-                .append(getCardmemberNumberExtended())
+                .append(getCardMemberNumberExtended())
                 .toHashCode();
     }
 }
