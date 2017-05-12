@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
         "DATAFILE_TRAILER_RECORD_COUNT"
 })
 public class DataFileTrailer  {
-    private final static Pattern pattern = Pattern.compile("^(?<dataFileTrailerRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileTrailerDate>\\p{Digit}{8})(?<dataFileTrailerTime>\\p{Digit}{4})(?<dataFileTrailerFileID>\\p{Digit}{6})(?<dataFileTrailerFileName>[\\p{Alnum}\\p{Space}]{20})(?<dataFileTrailerRecipientKey>[\\p{Digit}\\p{Space}]{40})(?<dataFileTrailerRecordCount>\\p{Digit}{7})\\p{Space}{0,360}");
+    public final static Pattern pattern = Pattern.compile("^(?<dataFileTrailerRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileTrailerDate>\\p{Digit}{8})(?<dataFileTrailerTime>\\p{Digit}{4})(?<dataFileTrailerFileID>\\p{Digit}{6})(?<dataFileTrailerFileName>[\\p{Alnum}\\p{Space}]{20})(?<dataFileTrailerRecipientKey>[\\p{Digit}\\p{Space}]{40})(?<dataFileTrailerRecordCount>\\p{Digit}{7})\\p{Space}{0,360}");
 
     /**
      * dataFileTrailerRecordType

@@ -42,28 +42,49 @@ import java.util.regex.Pattern;
 
 })
 public class SOCDetail {
-    private final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Alnum}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>2)(?<detailRecordType>10)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessingDate>(?<amexProcessingDateYear>\\p{Digit}{4})(?<amexProcessingDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socInvoiceAmount>(?<socInvoiceAmountPrefix>\\p{Digit}{10})(?<socInvoiceAmountSuffix>[A-R}{]{1}))(?<discountAmount>(?<discountAmountPrefix>\\p{Digit}{8})(?<discountAmountSuffix>[A-R}{]{1}))(?<serviceFeeAmount>(?<serviceFeePrefix>\\p{Digit}{6})(?<serviceFeeSuffix>[A-R}{]{1}))[0{]{7}(?<netSOCAmount>(?<netSOCAmountPrefix>\\p{Digit}{10})(?<netSOCAmountSuffix>[A-R}{]{1}))(?<discountRate>\\p{Digit}{5})(?<serviceFeeRate>\\p{Digit}{5})0{5}[0{]{11}[0{]{5}(?<amexGrossAmount>(?<amexGrossAmountPrefix>\\p{Digit}{10})(?<amexGrossAmountSuffix>[A-R}{]{1}))(?<amexROCCount>(?<amexROCCountPrefix>\\p{Digit}{4})(?<amexROCCountSuffix>[A-I{]{1}))(?<trackingId>[\\p{Digit}\\p{Blank}]{9})(?<cpcIndicator>[\\p{Alnum}\\p{Blank}]{1})\\p{Blank}{7}\\p{Blank}{8}(?<amexROCCountPOA>(?<amexROCCountPOAPrefix>\\p{Digit}{6})(?<amexROCCountPOASuffix>[A-I{]{1})).{0,261}$");
+    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Alnum}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>2)(?<detailRecordType>10)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessingDate>(?<amexProcessingDateYear>\\p{Digit}{4})(?<amexProcessingDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socInvoiceAmount>(?<socInvoiceAmountPrefix>\\p{Digit}{10})(?<socInvoiceAmountSuffix>[A-R}{]{1}))(?<discountAmount>(?<discountAmountPrefix>\\p{Digit}{8})(?<discountAmountSuffix>[A-R}{]{1}))(?<serviceFeeAmount>(?<serviceFeePrefix>\\p{Digit}{6})(?<serviceFeeSuffix>[A-R}{]{1}))[0{]{7}(?<netSOCAmount>(?<netSOCAmountPrefix>\\p{Digit}{10})(?<netSOCAmountSuffix>[A-R}{]{1}))(?<discountRate>\\p{Digit}{5})(?<serviceFeeRate>\\p{Digit}{5})0{5}[0{]{11}[0{]{5}(?<amexGrossAmount>(?<amexGrossAmountPrefix>\\p{Digit}{10})(?<amexGrossAmountSuffix>[A-R}{]{1}))(?<amexROCCount>(?<amexROCCountPrefix>\\p{Digit}{4})(?<amexROCCountSuffix>[A-I{]{1}))(?<trackingId>[\\p{Digit}\\p{Blank}]{9})(?<cpcIndicator>[\\p{Alnum}\\p{Blank}]{1})\\p{Blank}{7}\\p{Blank}{8}(?<amexROCCountPOA>(?<amexROCCountPOAPrefix>\\p{Digit}{6})(?<amexROCCountPOASuffix>[A-I{]{1})).{0,261}$");
 
+    /**
+     * amexPayeeNumber
+     * Numeric String 10 bytes long, required
+     * This field contains the Service Establishment (SE) Number of the merchant that received the payment from American Express.
+     * Note: SE Numbers are assigned by American Express.
+     */
     @JsonProperty("AMEX_PAYEE_NUMBER")
     @Size(max = 10)
     @NotNull
     private Long amexPayeeNumber;
 
+    /**
+     *  amexSeNumber
+     *    Numeric String 10 bytes long, required
+     *    This field contains the Service Establishment (SE) Number of the merchant being reconciled, which may not necessarily be the same SE receiving payment (see Field 1, AMEX_PAYEE_NUMBER).
+     *    This is the SE Number under which the transactions were sub-mitted, which usually corresponds to the physical location.
+     */
     @JsonProperty("AMEX_SE_NUMBER")
     @Size(max = 10)
     @NotNull
     private Long amexSeNumber;
 
+    /**
+     *  seUnitNumber
+     *    This field contains the merchant-assigned SE Unit Number (usually an internal, store identifier code) that corresponds to a specific store or location.
+     *    If no value is assigned, this field is character space filled.
+     */
     @JsonProperty("SE_UNIT_NUMBER")
     @Size(max = 10)
     @NotNull
-    private Long seUnitNumber;
+    private String seUnitNumber;
 
     @JsonProperty("PAYMENT_YEAR")
     @Size(max = 4)
     @NotNull
     private Long paymentYear;
 
+    /**
+     *  paymentNumber
+     *    This field contains the Payment Number, a reference number used by the American Express Payee to reconcile the daily settlement to the daily payment.
+     */
     @JsonProperty("PAYMENT_NUMBER")
     @Size(max = 8)
     @NotNull
@@ -79,69 +100,149 @@ public class SOCDetail {
     @NotNull
     private Long detailRecordType;
 
+    /**
+     *  seBusinessDate
+     *     This field contains the SE Business Date assigned to this submission by the submitting merchant location.
+     */
     @JsonProperty("SE_BUSINESS_DATE")
     @NotNull
     private Date seBusinessDate;
 
+    /**
+     *  amexProcessingDate
+     *    This field contains the American Express Transaction Processing Date, which is used to determine the payment date.
+     */
     @JsonProperty("AMEX_PROCESS_DATE")
     @NotNull
     private Date amexProcessDate;
 
+    /**
+     *  socInvoiceNumber
+     *  This field contains the Summary of Charge (SOC) Invoice Number.
+     *
+     *  For electronically submitted SOCs where the TBT_IDENTIFICATION_NUMBER (field 5 in the GFSG
+     *          Submission file) is populated with all zeros, this value is the concatenation of the Julian
+     *  Date (positions 60-62) and the last three digits of the PCID number under which this SOC was
+     *  submitted (positions 63-65).
+     *
+     *          For electronically submitted SOCs where the TBT_IDENTIFICATION_NUMBER (field 5 in the GFSG
+     *  Submission file) is populated with any numeric value other than zero, this value will be the
+     *  last six digits of the TBT_IDENTIFICATION_NUMBER under which this SOC was submitted
+     *          (positions 60-65).
+     *
+     */
     @JsonProperty("SOC_INVOICE_NUMBER")
     @Size(max = 6)
     @NotNull
     private Long socInvoiceNumber;
 
+    /**
+     * socAmount
+     *    This field contains the Summary of Charge (SOC) Amount originally submitted for payment.
+     *    Note: For US Dollar (USD) and Canadian Dollar (CAD) trans-actions, two decimal places are implied.
+     */
     @JsonProperty("SOC_AMOUNT")
     @Size(max = 11)
     @NotNull
     private Long socAmount;
 
-    @JsonProperty("DICSCOUNT_AMOUNT")
+    /**
+     * discountAmount
+     *   This field contains the total Discount Amount, based on socAmount and discountRate
+     */
+    @JsonProperty("DISCOUNT_AMOUNT")
     @Size(max = 9)
     @NotNull
     private Long discountAmount;
 
+    /**
+     * serviceFeeAmount
+     *   This field contains the total Service Fee Amount, based on socamount and serviceFeeRate
+     */
     @JsonProperty("SERVICE_FEE_AMOUNT")
     @Size(max = 7)
     @NotNull
     private Long serviceFeeAmount;
 
+    /**
+     * netSOCAmount
+     *   This field contains the Net SOC (Summary of Charge) Amount submitted to American Express for
+     *   payment, which is the sum total of  socAmount, less discountAmount and serviceFeeAmount
+     */
     @JsonProperty("NET_SOC_AMOUNT")
     @Size(max = 11)
     @NotNull
     private Long netSOCAmount;
 
+    /**
+     * discountRate
+     *   This field contains the Discount Rate (decimal place value) used to calculate the amount
+     *   American Express charges a merchant for services provided per the American Express Card
+     *   Acceptance Agreement.
+     */
     @JsonProperty("DISCOUNT_RATE")
     @Size(max = 5)
     @NotNull
     private Long discountRate;
 
+    /**
+     *  serviceFeeRate
+     *    This field contains the Service Fee Rate (decimal place value) used to calculate the amount
+     *    American Express charges a merchant as service fees.
+     *    Service fees are assessed only in certain situations and may not apply to all SEs.
+     */
     @JsonProperty("SEVICE_FEE_RATE")
     @Size(max = 5)
     @NotNull
     private Long serviceFeeRate;
 
+    /**
+     * amexGrossAmount
+     *    This field contains the gross amount of American Express charges submitted in the original
+     *    SOC amount.
+     */
     @JsonProperty("AMEX_GROSS_AMOUNT")
     @Size(max = 11)
     @NotNull
     private Long amexGrossAmount;
 
+    /**
+     *  amexROCCount
+     *     This field contains the quantity of American Express charges submitted in this Summary of
+     *     Charge (SOC). This entry is always positive, which is indicated by an upper-case alpha
+     *     code used in place of the last (least significant) digit.
+     */
     @JsonProperty("AMEX_ROC_COUNT")
     @Size(max = 5)
     @NotNull
     private Long amexROCCount;
 
+    /**
+     *  trackingId
+     *     This field contains the Tracking ID, which holds SOC processing information.
+     */
     @JsonProperty("TRACKING_ID")
     @Size(max = 9)
     @NotNull
-    private Long trackingID;
-
+    private Long trackingId;
+    /**
+     * cpcIndicator
+     * This field contains the CPC Indicator, which indicates whether the batch that corresponds
+     * to this SOC detail record contains CPC/Corporate Purchasing Card (a.k.a., CPS/Corporate
+     * Purchasing Solutions Card) transactions. Valid entries include:
+     * P = CPC/CPS Card transactions (special pricing applied)
+     * ~ = Non-CPC/CPS Card transactions
+     * Note: Tilde (~) represents a character space.
+     */
     @JsonProperty("CPC_INDICATOR")
     @Size(max = 1)
     @NotNull
-    private Long cpcIndicator;
-
+    private Boolean cpcIndicator;
+    /**
+     * amexROCCountPOA
+     * This field contains the quantity of American Express charges submitted in this Summary of
+     * Charge (SOC). This entry is always positive
+     */
     @JsonProperty("AMEX_ROC_COUNT_POA")
     @Size(max = 7)
     @NotNull
@@ -198,11 +299,11 @@ public class SOCDetail {
         this.amexSeNumber = amexSeNumber;
     }
 
-    public Long getSeUnitNumber() {
+    public String getSeUnitNumber() {
         return seUnitNumber;
     }
 
-    public void setSeUnitNumber(Long seUnitNumber) {
+    public void setSeUnitNumber(String seUnitNumber) {
         this.seUnitNumber = seUnitNumber;
     }
 
@@ -294,19 +395,19 @@ public class SOCDetail {
         this.amexROCCount = amexROCCount;
     }
 
-    public Long getTrackingID() {
-        return trackingID;
+    public Long getTrackingId() {
+        return trackingId;
     }
 
-    public void setTrackingID(Long trackingID) {
-        this.trackingID = trackingID;
+    public void setTrackingId(Long trackingId) {
+        this.trackingId = trackingId;
     }
 
-    public Long getCpcIndicator() {
+    public Boolean getCpcIndicator() {
         return cpcIndicator;
     }
 
-    public void setCpcIndicator(Long cpcIndicator) {
+    public void setCpcIndicator(Boolean cpcIndicator) {
         this.cpcIndicator = cpcIndicator;
     }
 
@@ -329,7 +430,7 @@ public class SOCDetail {
         return this;
     }
 
-    public SOCDetail withSeUnitNumber(Long seUnitNumber) {
+    public SOCDetail withSeUnitNumber(String seUnitNumber) {
         this.seUnitNumber = seUnitNumber;
         return this;
     }
@@ -409,12 +510,12 @@ public class SOCDetail {
         return this;
     }
 
-    public SOCDetail withTrackingID(Long trackingID) {
-        this.trackingID = trackingID;
+    public SOCDetail withTrackingId(Long trackingId) {
+        this.trackingId = trackingId;
         return this;
     }
 
-    public SOCDetail withCpcIndicator(Long cpcIndicator) {
+    public SOCDetail withCpcIndicator(Boolean cpcIndicator) {
         this.cpcIndicator = cpcIndicator;
         return this;
     }
@@ -462,7 +563,7 @@ public class SOCDetail {
                 .append(getServiceFeeRate(), socDetail.getServiceFeeRate())
                 .append(getAmexGrossAmount(), socDetail.getAmexGrossAmount())
                 .append(getAmexROCCount(), socDetail.getAmexROCCount())
-                .append(getTrackingID(), socDetail.getTrackingID())
+                .append(getTrackingId(), socDetail.getTrackingId())
                 .append(getCpcIndicator(), socDetail.getCpcIndicator())
                 .append(getAmexROCCountPOA(), socDetail.getAmexROCCountPOA())
                 .isEquals();
@@ -489,7 +590,7 @@ public class SOCDetail {
                 .append(getServiceFeeRate())
                 .append(getAmexGrossAmount())
                 .append(getAmexROCCount())
-                .append(getTrackingID())
+                .append(getTrackingId())
                 .append(getCpcIndicator())
                 .append(getAmexROCCountPOA())
                 .toHashCode();

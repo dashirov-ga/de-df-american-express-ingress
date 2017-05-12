@@ -314,7 +314,7 @@ public class TestParser {
 
                 m = ROC_DETAIL_311.matcher(line);
                 if ( m.matches()){
-                    System.out.println("Got: ROC DETAIL");
+                    System.out.println("Got: ROC DETAIL: " + line);
 
                     continue;
                 }

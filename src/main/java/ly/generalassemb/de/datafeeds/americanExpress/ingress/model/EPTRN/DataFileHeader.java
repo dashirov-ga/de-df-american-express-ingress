@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
         "DATAFILE_HEADER_FILE_NAME"
 })
 public class DataFileHeader {
-    private final static Pattern pattern = Pattern.compile("^(?<dataFileHeaderRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileHeaderDate>\\p{Digit}{8})(?<dataFileHeaderTime>\\p{Digit}{4})(?<dataFileHeaderFileID>\\p{Digit}{6})(?<dataFileHeaderFileName>[\\p{Alnum}\\p{Space}]{1,20})[\\p{Space}]{0,407}");
+    public final static Pattern pattern = Pattern.compile("^(?<dataFileHeaderRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileHeaderDate>\\p{Digit}{8})(?<dataFileHeaderTime>\\p{Digit}{4})(?<dataFileHeaderFileID>\\p{Digit}{6})(?<dataFileHeaderFileName>[\\p{Alnum}\\p{Space}]{1,20})[\\p{Space}]{0,407}");
 
     @JsonProperty("DATAFILE_HEADER_RECORD_TYPE")
     @Size(max = 5)
