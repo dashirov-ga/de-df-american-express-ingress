@@ -1,6 +1,8 @@
-# Data Engineering Data Feed: PayPal Braintree Revenue (Ingress)
+# Data Engineering Data Feed: American Express Revenue (Ingress)
 GroupId: **ly.generalassemb.de.datafeeds**
 ArtifactId: **df-american-express-ingress**
+
+Handles Revenue on transactions initiated with PayPal Braintree using American Express Credit Cards.
 
 # Configuration 
 ## de-df-american-express-ingress.properties
