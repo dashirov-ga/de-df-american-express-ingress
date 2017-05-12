@@ -43,7 +43,7 @@ public class Summary {
     private Long paymentYear;
 
     @JsonProperty("PAYMENT_NUMBER")
-    @Size(max = 10)
+    @Size(max = 8)
     @NotNull
     private String paymentNumber;
 
