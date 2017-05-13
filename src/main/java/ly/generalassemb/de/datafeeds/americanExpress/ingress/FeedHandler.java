@@ -25,19 +25,18 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import org.apache.commons.cli.*;
-import org.apache.commons.cli.ParseException;
 import org.joda.time.DateTime;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.text.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -225,6 +224,7 @@ public class FeedHandler {
 
 
         JSch ssh = new JSch();
+        ssh.setLogger(new SFTPLogger());
         String user = configuration.get().getString("source.amex.sftp.user");
         String host = configuration.get().getString("source.amex.sftp.host");
         int port = configuration.get().getInt("source.amex.sftp.port");
@@ -236,13 +236,18 @@ public class FeedHandler {
 
 
         try {
-            ssh.addIdentity(user, private_key.getBytes(), public_key.getBytes(), null);
+            LOGGER.debug("Private Key:{}", private_key);
 
+            ssh.setKnownHosts("/Users/dashirov/Source/GA/de-df-american-express-ingress/src/test/resources/known_hosts");
+            ssh.addIdentity(user, private_key.getBytes("US-ASCII"), public_key.getBytes("US-ASCII"), null);
             Session session = ssh.getSession(user, host, port);
-            LOGGER.debug("{0} SSH session created for {1} to host {2} on port {3}.", runId, user, host, port);
+            LOGGER.debug("{} SSH session created for {} to host {} on port {}.", runId, user, host, port);
+            java.util.Properties config = new java.util.Properties();
+            config.put("StrictHostKeyChecking", "yes");
+            session.setConfig(config);
 
             session.connect();
-            LOGGER.debug("{0} SSH session connected to host {2} on {3} as user {1}", runId, session.getUserName(), session.getHost(), session.getPort());
+            LOGGER.debug("{} SSH session connected to host {} on {} as user {}", runId, session.getHost(), session.getPort(), session.getUserName());
 
             Channel channel = session.openChannel("sftp");
             channel.setInputStream(System.in);
@@ -414,7 +419,7 @@ public class FeedHandler {
 
             }
             c.exit();
-            LOGGER.debug("{0} Done.", runId);
+            LOGGER.debug("{} Done.", runId);
 
 
         } catch (JSchException e) {
@@ -766,6 +771,36 @@ public class FeedHandler {
             reader.close();
         } catch (IOException | SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static class SFTPLogger implements com.jcraft.jsch.Logger {
+        public boolean isEnabled(int level) {
+            return true;
+        }
+
+        public void log(int level, String message) {
+            switch (level) {
+                case DEBUG:
+                    LOGGER.debug(message);
+                    break;
+                case INFO:
+                    LOGGER.info(message);
+                    break;
+                case WARN:
+                    LOGGER.warn(message);
+                    break;
+                case ERROR:
+                    LOGGER.error(message);
+                    break;
+                case FATAL:
+                    LOGGER.error(message);
+                    break;
+                default:
+                    break;
+
+            }
+
         }
     }
 }

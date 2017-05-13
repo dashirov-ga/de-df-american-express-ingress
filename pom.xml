@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ly.generalassemb.de.datafeeds</groupId>
@@ -22,7 +23,8 @@
 
     <scm>
         <connection>scm:git:https://github.com/generalassembly/de-df-american-express-ingress.git</connection>
-        <developerConnection>scm:git:https://github.com/generalassembly/de-df-american-express-ingress.git</developerConnection>
+        <developerConnection>scm:git:https://github.com/generalassembly/de-df-american-express-ingress.git
+        </developerConnection>
         <url>https://github.com/generalassembly/de-df-american-express-ingress</url>
         <tag>HEAD</tag>
     </scm>
@@ -169,8 +171,10 @@
                 <configuration>
                     <finalName>${project.artifactId}-${project.version}</finalName>
                     <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                        <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                        <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                             <mainClass>${smokeMainClass}</mainClass>
                             <manifestEntries>
                                 <Main-Class>${smokeMainClass}</Main-Class>
@@ -247,7 +251,7 @@
             <version>0.1.54</version>
         </dependency>
 
-         <dependency>
+        <dependency>
             <groupId>com.snowplowanalytics</groupId>
             <artifactId>snowplow-java-tracker</artifactId>
             <version>0.8.2</version>
@@ -385,6 +389,17 @@
             <version>2.4</version>
             <scope>test</scope>
 
+        </dependency>
+
+        <!--
+        I used DiffUtils to troubleshoot the differences between private keys when loaded using different methods
+        Dependency is no longer necessary, but I'd like to keep it around if I need to troubleshoot again
+        -->
+        <dependency>
+            <groupId>com.googlecode.java-diff-utils</groupId>
+            <artifactId>diffutils</artifactId>
+            <version>1.2.1</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
