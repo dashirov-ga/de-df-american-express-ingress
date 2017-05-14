@@ -30,6 +30,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -289,14 +290,17 @@ public class FeedHandler {
 
             for (File inputFile : filesDownloaded) {
                 BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+                List<Summary> summaries = new ArrayList<>();
+                List<SOCDetail> socDetails = new ArrayList<>();
+                List<ROCDetail> rocDetails = new ArrayList<>();
+                List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
                 String line;
                 int lineNumber;
                 while ((line = reader.readLine()) != null) {
                     Matcher m;
-
+                    System.out.println(line);
                     m = Summary.pattern.matcher(line);
                     if (m.matches()) {
-                        LOGGER.debug("{} Got: SUMMARY_100", runId);
 
                         Summary summary = new Summary()
                                 .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
@@ -309,6 +313,7 @@ public class FeedHandler {
                                 .withDebitBalanceAmount(AmountParser.toLong(m.group("debitBalanceAmountPrefix"), m.group("debitBalanceAmountSuffix")))
                                 .withAbaBankNumber(Long.valueOf(m.group("abaBankNumber")))
                                 .withPayeeDirectDepositAccountNumber(m.group("payeeDirectDepositAccountNumber").replace(" ", ""));
+                        summaries.add(summary);
                         LOGGER.debug(summary.toString());
                         continue;
                     }
@@ -337,6 +342,7 @@ public class FeedHandler {
                                 .withTrackingId(Long.valueOf(m.group("trackingId")))
                                 .withCpcIndicator(m.group("cpcIndicator").equals("P"))
                                 .withAmexROCCountPOA(AmountParser.toLong(m.group("amexROCCountPOAPrefix"), m.group("amexROCCountPOASuffix")));
+                        socDetails.add(socDetail);
                         LOGGER.debug(socDetail.toString());
                         continue;
                     }
@@ -368,6 +374,7 @@ public class FeedHandler {
                                 .withNonCompliantErrorCode4(m.group("nonCompliantErrorCode4").trim())
                                 .withNonSwipedIndicator(m.group("nonSwipedIndicator").trim())
                                 .withCardMemberNumberExtended(m.group("cardMemberNumberExtended").trim());
+                        rocDetails.add(rocDetail);
 
                         LOGGER.debug(rocDetail.toString());
                         continue;
@@ -392,6 +399,7 @@ public class FeedHandler {
                                 .withServiceFeeRate(Long.valueOf(m.group("serviceFeeRate")))
                                 .withCardMemberNumber(m.group("cardmemberNumber").trim())
                                 .withAdjustmentReason(m.group("adjustmentReason").trim());
+                        adjustmentDetails.add(adjustmentDetail);
 
                         LOGGER.debug(adjustmentDetail.toString());
                         continue;
@@ -416,7 +424,22 @@ public class FeedHandler {
                     }
 
                 }
-
+                if (summaries.size() > 0) {
+                    File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
+                    if (!skipProcessingStepsSet.contains("clean-local"))
+                        summaryFile.deleteOnExit();
+                    else
+                        LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
+                    Summary.writeCSVFile(summaryFile.getPath(), summaries);
+                }
+                if (adjustmentDetails.size() > 0) {
+                    File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
+                    if (!skipProcessingStepsSet.contains("clean-local"))
+                        adjustmentDetailsFile.deleteOnExit();
+                    else
+                        LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
+                    AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
+                }
             }
             c.exit();
             LOGGER.debug("{} Done.", runId);

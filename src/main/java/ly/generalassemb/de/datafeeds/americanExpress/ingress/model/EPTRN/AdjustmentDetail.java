@@ -7,10 +7,23 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.supercsv.cellprocessor.FmtDate;
+import org.supercsv.cellprocessor.Optional;
+import org.supercsv.cellprocessor.ParseLong;
+import org.supercsv.cellprocessor.Trim;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.cellprocessor.ift.StringCellProcessor;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
+import org.supercsv.quote.AlwaysQuoteMode;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -497,5 +510,58 @@ public class AdjustmentDetail {
                 .append(getCardMemberNumber())
                 .append(getAdjustmentReason())
                 .toHashCode();
+    }
+
+    public static void writeCSVFile(String csvFileName, List<AdjustmentDetail> records) {
+        ICsvBeanWriter beanWriter = null;
+        CellProcessor[] processors = new CellProcessor[]{
+                new ParseLong(), // amexPayeeNumber
+                new ParseLong(), // amexSeNumber
+                new ParseLong(), // paymentYear
+                new org.supercsv.cellprocessor.constraint.NotNull(), // paymentNumber
+                new org.supercsv.cellprocessor.constraint.NotNull(), // recordType
+                new Optional(new Trim()), // detailRecordType
+                new FmtDate("yyyy-MM-dd"), // amexProcessDate
+                new ParseLong(), //adjustmentNumner
+                new ParseLong(), // adjustmentAmount
+                new ParseLong(), // discountAmount
+                new ParseLong(), // serviceFeeAmount
+                new ParseLong(), // netAdjustmentAmount
+                new ParseLong(), // discountRate
+                new ParseLong(), // serviceFeeRate
+                new org.supercsv.cellprocessor.constraint.NotNull(), // cardmemberNumber
+                new org.supercsv.cellprocessor.constraint.NotNull() // adjustmentReason
+
+        };
+
+        try {
+            CsvPreference redshiftPreprerence =
+                    new CsvPreference.Builder(CsvPreference.EXCEL_PREFERENCE)
+                            .surroundingSpacesNeedQuotes(true)
+                            .ignoreEmptyLines(true)
+                            .useQuoteMode(new AlwaysQuoteMode())
+                            .build();
+            beanWriter = new CsvBeanWriter(new FileWriter(csvFileName),
+                    redshiftPreprerence);
+            String[] header = {"amexPayeeNumber", "amexSeNumber", "paymentYear", "paymentNumber", "recordType", "detailRecordType",
+                    "amexProcessDate", "adjustmentNumber", "adjustmentAmount", "discountAmount", "serviceFeeAmount", "netAdjustmentAmount",
+                    "discountRate", "serviceFeeRate", "cardMemberNumber", "adjustmentReason"};
+            beanWriter.writeHeader(header);
+
+            for (AdjustmentDetail record : records) {
+                beanWriter.write(record, header, processors);
+            }
+
+        } catch (IOException ex) {
+            System.err.println("Error writing the CSV file: " + ex);
+        } finally {
+            if (beanWriter != null) {
+                try {
+                    beanWriter.close();
+                } catch (IOException ex) {
+                    System.err.println("Error closing the writer: " + ex);
+                }
+            }
+        }
     }
 }

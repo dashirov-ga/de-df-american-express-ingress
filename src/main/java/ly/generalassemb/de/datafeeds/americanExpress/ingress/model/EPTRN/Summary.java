@@ -7,10 +7,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.supercsv.cellprocessor.FmtDate;
+import org.supercsv.cellprocessor.ParseDouble;
+import org.supercsv.cellprocessor.ParseLong;
+import org.supercsv.cellprocessor.constraint.NotNull;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
+import org.supercsv.quote.AlwaysQuoteMode;
+import org.supercsv.quote.QuoteMode;
 
-import javax.validation.constraints.NotNull;
+//import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.awt.print.Book;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -30,55 +44,55 @@ import java.util.regex.Pattern;
         "SE_DDA_NUMBER"
 })
 public class Summary {
-    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSortField1>[0]{10})(?<amexSortField2>[0]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum}{1})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>1)(?<detailRecordType>00)(?<paymentDate>(?<paymentDateYear>\\p{Digit}{4})(?<paymentDateJulianDate>\\p{Digit}{3}))(?<paymentAmount>(?<paymentAmountPrefix>\\p{Digit}{10})(?<paymentAmountSuffix>[A-R}{]{1}))(?<debitBalanceAmount>(?<debitBalanceAmountPrefix>\\p{Digit}{8})(?<debitBalanceAmountSuffix>[A-R}{]{1}))(?<abaBankNumber>\\p{Digit}{9})(?<seDDANumber>\\p{Digit}{1,17})");
+    public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSortField1>[0]{10})(?<amexSortField2>[0]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum}{1})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>1)(?<detailRecordType>00)(?<paymentDate>(?<paymentDateYear>\\p{Digit}{4})(?<paymentDateJulianDate>\\p{Digit}{3}))(?<paymentAmount>(?<paymentAmountPrefix>\\p{Digit}{10})(?<paymentAmountSuffix>[A-R}{]{1}))(?<debitBalanceAmount>(?<debitBalanceAmountPrefix>\\p{Digit}{8})(?<debitBalanceAmountSuffix>[A-R}{]{1}))(?<abaBankNumber>\\p{Digit}{9})(?<payeeDirectDepositAccountNumber>[\\p{Digit}\\p{Blank}]{1,17})(?<filler13>\\p{Blank}{352})$");
 
     @JsonProperty("AMEX_PAYEE_NUMBER")
     @Size(max = 10)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long amexPayeeNumber;
 
     @JsonProperty("PAYMENT_YEAR")
     @Size(max = 4)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long paymentYear;
 
     @JsonProperty("PAYMENT_NUMBER")
     @Size(max = 8)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private String paymentNumber;
 
     @JsonProperty("RECORD_TYPE")
     @Size(max = 1)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long recordType;
 
     @JsonProperty("DETAIL_RECORD_TYPE")
     @Size(max = 2)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long detailRecordType;
 
     @JsonProperty("PAYMENT_DATE")
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Date paymentDate;
 
     @JsonProperty("PAYMENT_AMOUNT")
     @Size(max = 11)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long paymentAmount;
 
     @JsonProperty("DEBIT_BALANCE_AMOUNT")
     @Size(max = 9)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long debitBalanceAmount;
 
     @JsonProperty("ABA_BANK_NUMBER")
     @Size(max = 9)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private Long abaBankNumber;
 
     @JsonProperty("SE_DDA_NUMBER")
     @Size(max = 17)
-    @NotNull
+    @javax.validation.constraints.NotNull
     private String payeeDirectDepositAccountNumber;
 
 
@@ -257,5 +271,50 @@ public class Summary {
                 .append(getAbaBankNumber())
                 .append(getPayeeDirectDepositAccountNumber())
                 .toHashCode();
+    }
+
+    public static void writeCSVFile(String csvFileName, List<Summary> summaries) {
+        ICsvBeanWriter beanWriter = null;
+        CellProcessor[] processors = new CellProcessor[]{
+                new ParseLong(), // amexPayeeNumber
+                new ParseLong(), // paymentYear
+                new NotNull(), // paymentNumber
+                new NotNull(), // recordType
+                new NotNull(), // detailRecordType
+                new FmtDate("yyyy-MM-dd"), // paymentDate
+                new ParseLong(), // paymentAmount
+                new ParseLong(), // debitBalanceAmount
+                new NotNull(), // abaBankNumber
+                new NotNull(), // payeeDirectDepositAccountNumber
+        };
+
+        try {
+            CsvPreference redshiftPreprerence =
+                    new CsvPreference.Builder(CsvPreference.EXCEL_PREFERENCE)
+                            .surroundingSpacesNeedQuotes(true)
+                            .ignoreEmptyLines(true)
+                            .useQuoteMode(new AlwaysQuoteMode())
+                            .build();
+            beanWriter = new CsvBeanWriter(new FileWriter(csvFileName),
+                    redshiftPreprerence);
+            String[] header = {"amexPayeeNumber", "paymentYear", "paymentNumber", "recordType", "detailRecordType",
+                    "paymentDate", "paymentAmount", "debitBalanceAmount", "abaBankNumber", "payeeDirectDepositAccountNumber"};
+            beanWriter.writeHeader(header);
+
+            for (Summary summary : summaries) {
+                beanWriter.write(summary, header, processors);
+            }
+
+        } catch (IOException ex) {
+            System.err.println("Error writing the CSV file: " + ex);
+        } finally {
+            if (beanWriter != null) {
+                try {
+                    beanWriter.close();
+                } catch (IOException ex) {
+                    System.err.println("Error closing the writer: " + ex);
+                }
+            }
+        }
     }
 }
