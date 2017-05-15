@@ -30,11 +30,11 @@ import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -51,17 +51,30 @@ import java.util.regex.Pattern;
  * Created by dashirov on 5/10/17.
  */
 public class FeedHandler {
+    private static enum S3Prefix {
+        EPTRN("EPTRN", "EPTRN", ".dat"),
+        EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
+        EPTRN_TRAILER("EPTRN-TRL", "CSV", ".csv"),
+        EPTRN_SUMMARY("EPTRN-SUMMARY", "CSV", ".csv"),
+        EPTRN_SOC_DETAIL("EPTRN-SOC-DETAIL", "CSV", ".csv"),
+        EPTRN_ROC_DETAIL("EPTRN-ROC-DETAIL", "CSV", ".csv"),
+        EPTRN_ADJUSTMENT_DETAIL("EPTRN-ADJ-DETAIL", "CSV", ".csv");
+        private final String prefix;
+        private final String format;
+        private final String suffix;
 
+        S3Prefix(String prefix, String format, String suffix) {
+            this.prefix = prefix;
+            this.format = format;
+            this.suffix = suffix;
+        }
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FeedHandler.class);
     private static final Set<String> skipProcessingStepsSet = new TreeSet<>();
     private static final DateFormat df = new SimpleDateFormat("yyyyMMdd");
     private static final DateFormat postgresTsWithTz = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSX");
     private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
-
-
-    private static final Pattern ADJUSTMENT_DETAIL_230 = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Alnum}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum}{1})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>2)(?<detailRecordType>30)(?<amexProcessDate>(?<amexProcessDateYear>\\p{Digit}{4})(?<amexProcessJulianDate>\\p{Digit}{3}))(?<adjustmentNumber>\\p{Digit}{6})(?<adjustmentAmount>(?<adjustmentAmountPrefix>\\p{Digit}{8})(?<adjustmentAmountSuffix>[A-R}{]{1}))(?<discountAmount>(?<discountAmountPrefix>\\p{Digit}{8})(?<discountAmountSuffix>[A-R}{]{1}))(?<serviceFeeAmount>(?<serviceFeeAmountPrefix>\\p{Digit}{6})(?<serviceFeeAmountSuffix>[A-R}{]{1}))(?<filler13>000000\\{)(?<netAdjustmentAmount>(?<netAdjustmentAmountPrefix>\\p{Digit}{8})(?<netAdjustmentAmountSuffix>[A-R}{]{1}))(?<discountRate>\\p{Digit}{5})(?<serviceFeeRate>\\p{Digit}{5})(?<filler17>00000)(?<filler18>0000000000\\{)(?<cardmemberNumber>\\p{Alnum}{17})(?<adjustmentReason>[\\p{ASCII}]{280})(?<filler21>\\p{ASCII}{3})(?<filler22>\\p{ASCII}{3})(?<filler23>\\p{Blank}{15})(?<filler24>\\p{ASCII}{1})(?<filler25>\\p{ASCII}{6})$");
-
 
     private static final TransferQueue<String> loadableCSVDataFiles = new LinkedTransferQueue<>();
     private static final TransferQueue<Map<String, Object>> archivableCSVDataFiles = new LinkedTransferQueue<>();
@@ -287,18 +300,37 @@ public class FeedHandler {
                 c.get(remoteFile.getPath(), localFile.getAbsolutePath());
                 filesDownloaded.add(localFile);
             }
-
+            Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
             for (File inputFile : filesDownloaded) {
                 BufferedReader reader = new BufferedReader(new FileReader(inputFile));
                 List<Summary> summaries = new ArrayList<>();
                 List<SOCDetail> socDetails = new ArrayList<>();
                 List<ROCDetail> rocDetails = new ArrayList<>();
                 List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
+                DataFileTrailer trailer = null;
+                DataFileHeader header = null;
                 String line;
                 int lineNumber;
                 while ((line = reader.readLine()) != null) {
                     Matcher m;
                     System.out.println(line);
+
+                    m = DataFileHeader.pattern.matcher(line);
+                    if (m.matches()) {
+                        DateFormat headerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
+
+                        header = new DataFileHeader()
+                                .withDataFileHeaderRecordType(m.group("dataFileHeaderRecordType"))
+                                .withDataFileHeaderDateTime(headerDateTime.parse(
+                                        m.group("dataFileHeaderDate") +
+                                                m.group("dataFileHeaderTime")))
+                                .withDataFileHeaderFileID(Long.valueOf(m.group("dataFileHeaderFileID")))
+                                .withDataFileHeaderFileName(m.group("dataFileHeaderFileName"));
+
+                        LOGGER.debug(header.toString());
+                        continue;
+                    }
+
                     m = Summary.pattern.matcher(line);
                     if (m.matches()) {
 
@@ -409,7 +441,7 @@ public class FeedHandler {
                     if (m.matches()) {
                         DateFormat trailerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
 
-                        DataFileTrailer trailer = new DataFileTrailer()
+                        trailer = new DataFileTrailer()
                                 .withDataFileTrailerRecordType(m.group("dataFileTrailerRecordType"))
                                 .withDataFileTrailerDateTime(trailerDateTime.parse(
                                         m.group("dataFileTrailerDate") +
@@ -422,8 +454,11 @@ public class FeedHandler {
                         LOGGER.debug(trailer.toString());
                         continue;
                     }
-
                 }
+                // Every line in the file downloaded has been parsed, you have json and csv data available now
+
+                String uniqueFileId = trailer.getDataFileTrailerRecipientKey().replaceAll("\\p{Blank}{2,}+", " #");
+                LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
                 if (summaries.size() > 0) {
                     File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
                     if (!skipProcessingStepsSet.contains("clean-local"))
@@ -431,7 +466,12 @@ public class FeedHandler {
                     else
                         LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
                     Summary.writeCSVFile(summaryFile.getPath(), summaries);
+                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_SUMMARY, new ArrayList<>()).add(
+                            uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId))
+                    );
+
                 }
+
                 if (adjustmentDetails.size() > 0) {
                     File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
                     if (!skipProcessingStepsSet.contains("clean-local"))
@@ -439,7 +479,12 @@ public class FeedHandler {
                     else
                         LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
                     AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
+                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, new ArrayList<>()).add(
+                            uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId))
+                    );
+
                 }
+
                 if (socDetails.size() > 0) {
                     File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
                     if (!skipProcessingStepsSet.contains("clean-local"))
@@ -447,7 +492,11 @@ public class FeedHandler {
                     else
                         LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
                     SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
+                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_SOC_DETAIL, new ArrayList<>()).add(
+                            uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId))
+                    );
                 }
+
                 if (rocDetails.size() > 0) {
                     File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
                     if (!skipProcessingStepsSet.contains("clean-local"))
@@ -455,7 +504,15 @@ public class FeedHandler {
                     else
                         LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
                     ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
+                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_ROC_DETAIL, new ArrayList<>()).add(
+                            uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId))
+                    );
                 }
+
+                uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
+
+
+
             }
             c.exit();
             LOGGER.debug("{} Done.", runId);
@@ -482,6 +539,13 @@ public class FeedHandler {
 
     }
 
+    private static Map<String, Object> packS3UploadParameters(String localFilePath, S3Prefix type, String uniqueFileId) {
+        Map<String, Object> uploadTask = new HashMap<>();
+        uploadTask.put("file", localFilePath);
+        uploadTask.put("id", uniqueFileId);
+        uploadTask.put("type", type);
+        return uploadTask;
+    }
     // This should take a manifest, not sql statement
     private static void uploadToRedshiftTask() {
         // If s3 files were uploaded
@@ -608,10 +672,14 @@ public class FeedHandler {
     private static AmazonS3URI uploadToDataLakeTask(Map<String, Object> fileMetadata) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
-        String from = df.format((Date) fileMetadata.get("from"));
-        String upto = df.format((Date) fileMetadata.get("upto"));
-        String key = "data/" + (from.equals(upto) ? from : from + "-" + upto) + ".csv";
+
         String file = (String) fileMetadata.get("file");
+        S3Prefix constants = (S3Prefix) fileMetadata.get("type");
+        String fileId = (String) fileMetadata.get("id");
+
+        String format = constants.format;
+        String key = Paths.get(fileId, constants.prefix + constants.suffix).toString();
+
         String bucket = configuration.get().getString("sink.s3.bucket.name");
 
         AWSCredentialsProvider credentialsProvider;
@@ -634,18 +702,14 @@ public class FeedHandler {
 
 
         List<Tag> tags = new ArrayList<>();
-        tags.add(new Tag("Contents", "Braintree Credit Card Transactions"));
-        tags.add(new Tag("PII", "TRUE"));
+        tags.add(new Tag("Contents", "American Express Credit Card Transactions"));
+        tags.add(new Tag("PII", "FALSE"));
+        tags.add(new Tag("PCI", "TRUE"));
         tags.add(new Tag("Snapshot Date", df.format(new Date())));
-        tags.add(new Tag("Format", "CSV"));
-        tags.add(new Tag("CSV:Header", "TRUE"));
+        tags.add(new Tag("Format", format));
+        if (format.equals("CSV"))
+            tags.add(new Tag("CSV:Header", "TRUE"));
         tags.add(new Tag("RunId", runId.toString()));
-
-        // tags.add(new Tag("CSV:Line-Separator", "\\n"));
-        // tags.add(new Tag("CSV:Null-As", "\\N"));
-        // tags.add(new Tag("Uploader:Name", FeedHandler.class.getClass().getCanonicalName()));
-        // tags.add(new Tag("Uploader:S3", s3.getClass().getPackage().getImplementationVersion()));
-        // tags.add(new Tag("Uploader:Version", FeedHandler.class.getClass().getPackage().getImplementationVersion()));
 
         File f = new File(file);
         LOGGER.info("Uploading to s3: {} bytes {}", f.length(), file);
@@ -655,31 +719,6 @@ public class FeedHandler {
                 f); // takes File not String fileName...
         req.setTagging(new ObjectTagging(tags));
         s3.putObject(req);
-        /**
-
-         Proposed srtucture in the data lake:
-         s3://ga-paypal-braintree/data/TX/2001-01-01.csv
-         /manifest/runId=9af7e48431a39221666074247154197.json
-
-         Resulting MANIFEST STRUCTURE:
-         {
-         "entries": [
-         {"url":"s3://mybucket-alpha/2013-10-04-custdata", "mandatory":true},
-         {"url":"s3://mybucket-alpha/2013-10-05-custdata", "mandatory":true},
-         {"url":"s3://mybucket-beta/2013-10-04-custdata", "mandatory":true},
-         {"url":"s3://mybucket-beta/2013-10-05-custdata", "mandatory":true}
-         ]
-         }
-
-         THEN REDSHIFT LOAD WILL LOOK LIKE:
-         copy customer
-         from 's3://mybucket/cust.manifest'
-         iam_role 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
-         manifest;
-
-         */
-
-
         return new AmazonS3URI("s3://" + configuration.get().getString("sink.s3.bucket.name") +
                 "/" + key);
     }
