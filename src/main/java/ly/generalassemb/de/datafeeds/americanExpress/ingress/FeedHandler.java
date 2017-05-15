@@ -440,6 +440,22 @@ public class FeedHandler {
                         LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
                     AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
                 }
+                if (socDetails.size() > 0) {
+                    File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
+                    if (!skipProcessingStepsSet.contains("clean-local"))
+                        socDetailsFile.deleteOnExit();
+                    else
+                        LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
+                    SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
+                }
+                if (rocDetails.size() > 0) {
+                    File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
+                    if (!skipProcessingStepsSet.contains("clean-local"))
+                        rocDetailsFile.deleteOnExit();
+                    else
+                        LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
+                    ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
+                }
             }
             c.exit();
             LOGGER.debug("{} Done.", runId);

@@ -7,10 +7,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.supercsv.cellprocessor.*;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
+import org.supercsv.quote.AlwaysQuoteMode;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -415,6 +424,7 @@ public class SOCDetail {
         return amexROCCountPOA;
     }
 
+
     public void setAmexROCCountPOA(Long amexROCCountPOA) {
         this.amexROCCountPOA = amexROCCountPOA;
     }
@@ -594,5 +604,63 @@ public class SOCDetail {
                 .append(getCpcIndicator())
                 .append(getAmexROCCountPOA())
                 .toHashCode();
+    }
+
+    public static void writeCSVFile(String csvFileName, List<SOCDetail> records) {
+        ICsvBeanWriter beanWriter = null;
+        CellProcessor[] processors = new CellProcessor[]{
+                new ParseLong(), // amexPayeeNumber
+                new ParseLong(), // amexSeNumber
+                new Trim(), // seUnitNumber
+                new ParseLong(), // paymentYear
+                new org.supercsv.cellprocessor.constraint.NotNull(), // paymentNumber
+                new org.supercsv.cellprocessor.constraint.NotNull(), // recordType
+                new Optional(new Trim()), // detailRecordType
+                new FmtDate("yyyy-MM-dd"), // seBusinessDate
+                new FmtDate("yyyy-MM-dd"), // amexProcessDate
+                new ParseLong(), // socInvoiceNumber
+                new ParseLong(), // socAmount
+                new ParseLong(), // discountAmount
+                new ParseLong(), // serviceFeeAmount
+                new ParseLong(), // netSOCAmount
+                new ParseLong(), // discountRate
+                new ParseLong(), // serviceFeeRate
+                new ParseLong(), // amexGrossAmount
+                new ParseLong(), // amexROCCount
+                new ParseLong(), // trackingId
+                new Optional(new Trim()), // cpcIndicator
+                new ParseLong(), // amexROCCountPOA
+
+        };
+
+        try {
+            CsvPreference redshiftPreprerence =
+                    new CsvPreference.Builder(CsvPreference.EXCEL_PREFERENCE)
+                            .surroundingSpacesNeedQuotes(true)
+                            .ignoreEmptyLines(true)
+                            .useQuoteMode(new AlwaysQuoteMode())
+                            .build();
+            beanWriter = new CsvBeanWriter(new FileWriter(csvFileName),
+                    redshiftPreprerence);
+            String[] header = {"amexPayeeNumber", "amexSeNumber", "seUnitNumber", "paymentYear", "paymentNumber", "recordType", "detailRecordType",
+                    "seBusinessDate", "amexProcessDate", "socInvoiceNumber", "socAmount", "discountAmount", "serviceFeeAmount", "netSOCAmount",
+                    "discountRate", "serviceFeeRate", "amexGrossAmount", "amexROCCount", "trackingId", "cpcIndicator", "amexROCCountPOA"};
+            beanWriter.writeHeader(header);
+
+            for (SOCDetail record : records) {
+                beanWriter.write(record, header, processors);
+            }
+
+        } catch (IOException ex) {
+            System.err.println("Error writing the CSV file: " + ex);
+        } finally {
+            if (beanWriter != null) {
+                try {
+                    beanWriter.close();
+                } catch (IOException ex) {
+                    System.err.println("Error closing the writer: " + ex);
+                }
+            }
+        }
     }
 }
