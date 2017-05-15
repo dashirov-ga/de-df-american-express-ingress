@@ -9,10 +9,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.ObjectTagging;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.*;
 import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
@@ -40,10 +37,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.TransferQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +44,7 @@ import java.util.regex.Pattern;
  * Created by dashirov on 5/10/17.
  */
 public class FeedHandler {
-    private static enum S3Prefix {
+    private enum S3Prefix {
         EPTRN("EPTRN", "EPTRN", ".dat"),
         EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
         EPTRN_TRAILER("EPTRN-TRL", "CSV", ".csv"),
@@ -62,7 +55,6 @@ public class FeedHandler {
         private final String prefix;
         private final String format;
         private final String suffix;
-
         S3Prefix(String prefix, String format, String suffix) {
             this.prefix = prefix;
             this.format = format;
@@ -76,13 +68,6 @@ public class FeedHandler {
     private static final DateFormat postgresTsWithTz = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSX");
     private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
 
-    private static final TransferQueue<String> loadableCSVDataFiles = new LinkedTransferQueue<>();
-    private static final TransferQueue<Map<String, Object>> archivableCSVDataFiles = new LinkedTransferQueue<>();
-    private static final TransferQueue<AmazonS3URI> s3Manifest = new LinkedTransferQueue<>();
-    private static final TransferQueue<List<Calendar>> datesToProcess = new LinkedTransferQueue<>();
-
-    private static final ExecutorService s3SinkExecutorService = Executors.newFixedThreadPool(5);
-    private static final ExecutorService pgSinkExecutorService = Executors.newFixedThreadPool(2);
 
     private static Tracker tracker;
     private static Config configuration;
@@ -96,26 +81,7 @@ public class FeedHandler {
         FeedHandler.tracker = tracker;
     }
 
-    private static void generateTodos(Calendar fromDate, Calendar uptoDate) throws InterruptedException {
 
-        // TODO: Too convoluted - rewrite without use of old ass Calendar with either Joda Time or Java 8 Time, which are pretty much the same
-        DateTime dateTime1 = new DateTime(fromDate);
-        DateTime dateTime2 = new DateTime(uptoDate);
-
-        while (!dateTime1.isAfter(dateTime2)) {
-            Calendar item1 = Calendar.getInstance();
-            item1.setTimeZone(TimeZone.getTimeZone("UTC"));
-            item1.setTime(dateTime1.toDate());
-            Calendar item2 = (Calendar) item1.clone();
-            item2.add(Calendar.DATE, 1);
-            item2.add(Calendar.MILLISECOND, -1);
-            LOGGER.info("TODO: {} - {}", postgresTsWithTz.format(item1.getTime()), postgresTsWithTz.format(item2.getTime()));
-            List<Calendar> todoItem = Collections.unmodifiableList(Arrays.asList(item1, item2));
-            datesToProcess.add(todoItem);
-            dateTime1 = dateTime1.plusDays(1);
-        }
-
-    }
 
     private static void init(String[] args) throws InterruptedException, ParseException, MalformedURLException {
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -457,7 +423,7 @@ public class FeedHandler {
                 }
                 // Every line in the file downloaded has been parsed, you have json and csv data available now
 
-                String uniqueFileId = trailer.getDataFileTrailerRecipientKey().replaceAll("\\p{Blank}{2,}+", " #");
+                String uniqueFileId = trailer.getDataFileTrailerRecipientKey().replaceAll("\\p{Blank}{2,}+", "-");
                 LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
                 if (summaries.size() > 0) {
                     File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
@@ -466,9 +432,8 @@ public class FeedHandler {
                     else
                         LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
                     Summary.writeCSVFile(summaryFile.getPath(), summaries);
-                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_SUMMARY, new ArrayList<>()).add(
-                            uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId))
-                    );
+                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SUMMARY, k -> new ArrayList<>());
+                    entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId)));
 
                 }
 
@@ -479,10 +444,8 @@ public class FeedHandler {
                     else
                         LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
                     AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
-                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, new ArrayList<>()).add(
-                            uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId))
-                    );
-
+                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
+                    entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId)));
                 }
 
                 if (socDetails.size() > 0) {
@@ -492,9 +455,8 @@ public class FeedHandler {
                     else
                         LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
                     SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
-                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_SOC_DETAIL, new ArrayList<>()).add(
-                            uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId))
-                    );
+                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SOC_DETAIL, k -> new ArrayList<>());
+                    entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId)));
                 }
 
                 if (rocDetails.size() > 0) {
@@ -504,9 +466,9 @@ public class FeedHandler {
                     else
                         LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
                     ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
-                    redshiftLoadable.getOrDefault(S3Prefix.EPTRN_ROC_DETAIL, new ArrayList<>()).add(
-                            uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId))
-                    );
+                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ROC_DETAIL, k -> new ArrayList<>());
+                    entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId)));
+
                 }
 
                 uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
@@ -514,7 +476,24 @@ public class FeedHandler {
 
 
             }
+
             c.exit();
+
+            if (!redshiftLoadable.isEmpty()) {
+                // All files have been seen, parsed, split into record types and loaded to s3
+                // Time to make them show up in the redshift data warehouse and or postgresql database
+                for (S3Prefix type : redshiftLoadable.keySet()) {
+                    if (redshiftLoadable.get(type).size() > 0) {
+                        RedshiftManifest manifest = new RedshiftManifest();
+                        for (AmazonS3URI file : redshiftLoadable.get(type)) {
+                            manifest.addEntry(new RedshiftManifestEntry(true, file));
+                        }
+                        LOGGER.debug("{}: {}", type.name(), manifest.toString());
+                        uploadToRedshiftTask(manifest, type);
+                    }
+                }
+            }
+
             LOGGER.debug("{} Done.", runId);
 
 
@@ -527,13 +506,6 @@ public class FeedHandler {
         } catch (java.text.ParseException e) {
             e.printStackTrace();
         }
-
-
-        // When all parallel tasks are complete, combine the output into a single redshift upload
-        if (!skipProcessingStepsSet.contains("redshift"))
-            uploadToRedshiftTask();
-        else
-            LOGGER.info("Skipping Redshift upload.");
         System.out.println("Finished all threads");
         System.exit(0);
 
@@ -547,19 +519,13 @@ public class FeedHandler {
         return uploadTask;
     }
     // This should take a manifest, not sql statement
-    private static void uploadToRedshiftTask() {
+    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) {
         // If s3 files were uploaded
+        String key = Paths.get("manifest", runId.toString(), type.name() + ".json").toString();
+        String bucket = configuration.get().getString("sink.s3.bucket.name");
+        AmazonS3URI manifestURI = new AmazonS3URI("s3://" + bucket + "/" + key); // validate!
+
         try {
-            if (s3Manifest.size() > 0 && !skipProcessingStepsSet.contains("redshift")) {
-                String key = "manifest/" + runId + ".json";
-                String bucket = configuration.get().getString("sink.s3.bucket.name");
-                AmazonS3URI manifestURI = new AmazonS3URI("s3://" + bucket + "/" + key); // validate!
-
-                RedshiftManifest manifest = new RedshiftManifest();
-                while (!s3Manifest.isEmpty()) {
-                    manifest.addEntry(new RedshiftManifestEntry(true, s3Manifest.take()));
-                }
-
                 LOGGER.info("Loading {}", manifest.toString());
                 AWSCredentialsProvider credentialsProvider;
                 if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
@@ -584,19 +550,18 @@ public class FeedHandler {
                 manifestMetadata.setContentEncoding("UTF-8");
 
                 PutObjectRequest req = new PutObjectRequest(
-                        bucket,
-                        key, new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)), manifestMetadata);
+                        configuration.get().getString("sink.s3.bucket.name"),
+                        key,
+                        new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
+                        manifestMetadata
+                );
                 s3.putObject(req);
-
-                // Class.forName(configuration.get().getString("sink.redshift.jdbc.driver"));
-                // DriverManager.registerDriver (new configuration.get().getString("sink.redshift.jdbc.driver") );
 
                 Connection c = DriverManager.getConnection(
                         configuration.get().getString("sink.redshift.jdbc.url"),
                         configuration.get().getString("sink.redshift.jdbc.usr"),
                         configuration.get().getString("sink.redshift.jdbc.pwd")
                 );
-
                 c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
 
                 PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
@@ -608,9 +573,29 @@ public class FeedHandler {
                 c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
                 c.setAutoCommit(false);
 
-                String creteTemp = "CREATE TEMPORARY TABLE \n" +
-                        "temp_paypal_braintree_revenue_activity \n" +
-                        "( LIKE paypal_braintree_revenue_activity  );";
+            String targetTable = null;
+            String deleteKey = null;
+            switch (type) {
+                case EPTRN_SUMMARY:
+                    targetTable = "american_express_revenue_activity_summary";
+                    deleteKey = "payment_number";
+                    break;
+                case EPTRN_ROC_DETAIL:
+                    targetTable = "american_express_revenue_activity_record_of_charge_detail";
+                    deleteKey = "payment_number";
+                    break;
+                case EPTRN_SOC_DETAIL:
+                    targetTable = "american_express_revenue_activity_summary_of_charge_detail";
+                    deleteKey = "payment_number";
+                    break;
+                case EPTRN_ADJUSTMENT_DETAIL:
+                    targetTable = "american_express_revenue_activity_adjustment_detail";
+                    deleteKey = "payment_number";
+                    break;
+                default:
+                    break;
+            }
+            String creteTemp = "CREATE TEMPORARY TABLE temp_" + targetTable + "( LIKE " + targetTable + "  );";
                 LOGGER.info(creteTemp);
                 PreparedStatement s = c.prepareStatement(creteTemp);
                 s.execute();
@@ -623,13 +608,7 @@ public class FeedHandler {
 
                  */
                 String copyCommand =
-                        "COPY  temp_paypal_braintree_revenue_activity " +
-                                " (id, type, status, created_at, order_id, amount, tax_amount, service_fee_amount, " +
-                                " merchant_account_id, channel, currency_iso_code, customer_email, customer_company, " +
-                                " customer_first_name, customer_last_name, customer_id, settlement_batch_id, updated_at, " +
-                                " processor_response_code, processor_response_text, subscription_id,  " +
-                                " credit_card_type, credit_card_last4, credit_card_unique_id,  is_disbursed, disbursement_date, settlement_currency_exchange_rate, " +
-                                " settlement_amount,settlement_currency_iso_code) " +
+                        "COPY  temp_" + targetTable +
                                 " FROM '" + manifestURI.getURI() + "'\n " +
                                 " CREDENTIALS '" + configuration.get().getString("sink.redshift.jdbc.credentials") + "' " +
                                 " MANIFEST CSV IGNOREHEADER 1;";
@@ -638,18 +617,18 @@ public class FeedHandler {
                 s = c.prepareStatement(copyCommand);
                 s.execute();
 
-                String deleteOld = "DELETE FROM paypal_braintree_revenue_activity \n" +
-                        "WHERE EXISTS ( SELECT 1 FROM temp_paypal_braintree_revenue_activity  " +
-                        "WHERE temp_paypal_braintree_revenue_activity.id = paypal_braintree_revenue_activity.id )";
+            String deleteOld = "DELETE FROM " + targetTable +
+                    " WHERE EXISTS ( SELECT 1 FROM temp_" + targetTable +
+                    " WHERE temp_" + targetTable + "." + deleteKey + " = " + targetTable + "." + deleteKey + ");";
                 LOGGER.info(deleteOld);
                 s = c.prepareStatement(deleteOld);
                 s.execute();
 
-                String insertNew = "INSERT INTO paypal_braintree_revenue_activity\n" +
-                        "select t.* \n" +
-                        "from temp_paypal_braintree_revenue_activity t\n" +
-                        "left outer join  paypal_braintree_revenue_activity p using (id)\n" +
-                        "where p.id is null";
+            String insertNew = "INSERT INTO " + targetTable +
+                    " select t.* " +
+                    " from temp_" + targetTable + " t" +
+                    " left outer join  " + targetTable + " p using (" + deleteKey + ")" +
+                    " where p." + deleteKey + " is null";
                 LOGGER.info(insertNew);
                 s = c.prepareStatement(insertNew);
                 s.execute();
@@ -657,12 +636,6 @@ public class FeedHandler {
                 c.commit();
                 c.setAutoCommit(true);
 
-
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            // }  catch (ClassNotFoundException e) {
-            //  e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -670,6 +643,7 @@ public class FeedHandler {
 
 
     private static AmazonS3URI uploadToDataLakeTask(Map<String, Object> fileMetadata) {
+        // This should not be triggered if s3 step is skipped
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
@@ -723,60 +697,6 @@ public class FeedHandler {
                 "/" + key);
     }
 
-    class S3UploadTaskRunner implements Runnable {
-        @Override
-        public void run() {
-            if (!skipProcessingStepsSet.contains("s3")) {
-                LOGGER.info("Starting S3UploadTaskRunner...");
-                // execute each thread until all downloaders are finished and there are no files to take from the queue
-
-                try {
-                    Map<String, Object> fileMeta = archivableCSVDataFiles.take();
-                    LOGGER.info("S3UploadTaskRunner - got things to do");
-                    AmazonS3URI s3url = uploadToDataLakeTask(fileMeta);
-                    s3Manifest.add(s3url);
-                    LOGGER.info("S3UploadTaskRunner - finished with {}", s3url.toString());
-
-
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-
-                LOGGER.info("S3UploadTaskRunner - Done, nothing else to do");
-            } else {
-                LOGGER.info("Skipping S3 upload.");
-            }
-
-        }
-    }
-
-    /**
-     * Takes a file name from loadableCSVDataFiles queue
-     * executes a function that actually loads the file into the pg db
-     * repeats the cycle until indication is present that no more loadable files are to come for processing
-     * then exits
-     */
-    class PostgresUploadTaskRunner implements Runnable {
-        @Override
-        public void run() {
-            if (!skipProcessingStepsSet.contains("postgres")) {
-                LOGGER.info("PostgresUploadTaskRunner - Starting");
-                // execute each thread until all downloaders are finished and there are no files to take from the queue
-                try {
-                    LOGGER.info("PostgresUploadTaskRunner - Blocking for files to load");
-                    String file = loadableCSVDataFiles.take();
-                    LOGGER.info("PostgresUploadTaskRunner - Got things to to");
-                    uploadToPostgresTask(file);
-                    LOGGER.info("PostgresUploadTaskRunner - Finished {}", file);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                LOGGER.info("PostgresUploadTaskRunner - Exiting");
-            } else {
-                LOGGER.info("Skipping PostgreSQL load.");
-            }
-        }
-    }
 
     /**
      * Separate function to be able to test business logic without complicated concurrency setup

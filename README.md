@@ -58,3 +58,101 @@ E.G.
 ```
 ## Future
 At some point we may want to implement a multi-threaded process, similar to df-paypal-braintree. Examples can be found here: https://bitbucket.org/finelean/sftpconnectionpool
+
+## Redshift Tables (Preliminary scratch)
+Compression - TBD
+Data Distribution - TBD
+Data Sort Order - TBD
+
+```derby
+ CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_summary
+				(
+				amex_payee_number NUMERIC NOT NULL,
+				payment_year NUMERIC NOT NULL,
+				payment_number VARCHAR(8) NOT NULL,
+				record_type INT NOT NULL,
+				detail_record_type INT NOT NULL,
+				payment_date DATE NOT NULL,
+				payment_amount DECIMAL NOT NULL,
+				debit_balance_amount DECIMAL NOT NULL,
+				aba_bank_number NUMERIC,
+				payee_direct_deposit_acount_number VARCHAR(17)
+				);
+COMMENT ON TABLE scratch.american_express_revenue_activity_summary IS 'EPTRN Data File Summary';
+
+CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_adjustment_detail
+				(
+				amex_payee_number NUMERIC NOT NULL,
+				amex_se_number NUMERIC NOT NULL,
+				payment_year NUMERIC NOT NULL,
+				payment_number VARCHAR(8) NOT NULL,
+				record_type INT NOT NULL,
+				detail_record_type INT NOT NULL,
+				amex_process_date DATE NOT NULL,
+				adjustment_number NUMERIC NOT NULL,
+				adjustment_amount DECIMAL NOT NULL,
+				discount_amount DECIMAL NOT NULL,
+				service_fee_amount DECIMAL NOT NULL,
+				net_adjustment_amount DECIMAL NOT NULL,
+				discount_rate DECIMAL DEFAULT 0.00000 NOT NULL,
+				service_fee_rate DECIMAL DEFAULT 0.00000 NOT NULL,
+				card_member_number VARCHAR(17) NOT NULL,
+				adjustment_reason VARCHAR(280)
+				);
+COMMENT ON TABLE scratch.american_express_revenue_activity_adjustment_detail IS 'EPTRN Adjustment Detail';
+
+CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_record_of_charge_detail
+				(
+				amex_payee_number NUMERIC NOT NULL,
+				amex_se_number NUMERIC NOT NULL,
+				se_unit_number VARCHAR(10),
+				payment_year NUMERIC NOT NULL,
+				payment_number VARCHAR(8) NOT NULL,
+				record_type INT NOT NULL,
+				detail_record_type INT NOT NULL,
+				se_business_date DATE NOT NULL,
+				amex_process_date DATE NOT NULL,
+				soc_invoice_number NUMERIC NOT NULL,
+				soc_amount DECIMAL NOT NULL,
+				roc_amount DECIMAL NOT NULL,
+				card_member_number VARCHAR(17),
+				card_member_reference_number VARCHAR(11),
+				transaction_Date DATE NOT NULL,
+				invoice_reference_number VARCHAR(30),
+				non_compliant_indicator VARCHAR(1),
+				non_compliant_error_code_1 VARCHAR(4),
+				non_compliant_error_code_2 VARCHAR(4),
+				non_compliant_error_code_3 VARCHAR(4),
+				non_compliant_error_code_4 VARCHAR(4),
+				non_swiped_indicator VARCHAR(1),
+				card_member_number_extended VARCHAR(19)
+				);
+COMMENT ON TABLE scratch.american_express_revenue_activity_record_of_charge_detail IS 'EPTRN ROC Detail';				
+
+CREATE TABLE scratch.american_express_revenue_activity_summary_of_charge_detail
+				(
+				amex_payee_number NUMERIC NOT NULL,
+				amex_se_number NUMERIC NOT NULL,
+				se_unit_number VARCHAR(10),
+				payment_year NUMERIC NOT NULL,
+				payment_number VARCHAR(8) NOT NULL,
+				record_type INT NOT NULL,
+				detail_record_type INT NOT NULL,
+				se_business_date DATE NOT NULL,
+				amex_process_date DATE NOT NULL,
+				soc_invoice_number NUMERIC NOT NULL,
+				soc_amount DECIMAL NOT NULL,
+				discount_amount DECIMAL NOT NULL,
+				service_fee_amount DECIMAL NOT NULL,
+				net_soc_amount DECIMAL NOT NULL,
+				discount_rate DECIMAL DEFAULT 0.00000 NOT NULL,
+				service_fee_rate DECIMAL DEFAULT 0.00000 NOT NULL,
+				amex_gross_amount DECIMAL NOT NULL,
+				amex_roc_count INT NOT NULL ,
+				tracking_id NUMERIC NOT NULL,
+				cpc_indecator BOOLEAN,
+				amex_roc_count_poa INTEGER NOT NULL
+			    );
+COMMENT ON TABLE scratch.american_express_revenue_activity_summary_of_charge_detail IS 'EPTRN SOC Detail';
+
+```
