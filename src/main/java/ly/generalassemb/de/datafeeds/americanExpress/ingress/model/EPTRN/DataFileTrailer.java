@@ -10,7 +10,10 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -27,7 +30,7 @@ import java.util.regex.Pattern;
 })
 public class DataFileTrailer  {
     public final static Pattern pattern = Pattern.compile("^(?<dataFileTrailerRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileTrailerDate>\\p{Digit}{8})(?<dataFileTrailerTime>\\p{Digit}{4})(?<dataFileTrailerFileID>\\p{Digit}{6})(?<dataFileTrailerFileName>[\\p{Alnum}\\p{Space}]{20})(?<dataFileTrailerRecipientKey>[\\p{Digit}\\p{Space}]{40})(?<dataFileTrailerRecordCount>\\p{Digit}{7})\\p{Space}{0,360}");
-
+    private final static DateFormat trailerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
     /**
      * dataFileTrailerRecordType
      *   This field contains the constant literal “DFTRL”, a Record Type code that indicates that
@@ -215,6 +218,22 @@ public class DataFileTrailer  {
                 .append(getDataFileTrailerRecipientKey())
                 .append(getDataFileTrailerRecordCount())
                 .toHashCode();
+    }
+
+    public static DataFileTrailer parse(String lineOfText) throws java.text.ParseException {
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            return new DataFileTrailer()
+                    .withDataFileTrailerRecordType(m.group("dataFileTrailerRecordType"))
+                    .withDataFileTrailerDateTime(trailerDateTime.parse(
+                            m.group("dataFileTrailerDate") +
+                                    m.group("dataFileTrailerTime")))
+                    .withDataFileTrailerFileID(Long.valueOf(m.group("dataFileTrailerFileID")))
+                    .withDataFileTrailerFileName(m.group("dataFileTrailerFileName"))
+                    .withDataFileTrailerRecipientKey(m.group("dataFileTrailerRecipientKey"))
+                    .withDataFileTrailerRecordCount(Long.valueOf(m.group("dataFileTrailerRecordCount")));
+        }
+        return null;
     }
 
 

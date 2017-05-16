@@ -27,6 +27,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -55,6 +56,7 @@ public class FeedHandler {
         private final String prefix;
         private final String format;
         private final String suffix;
+
         S3Prefix(String prefix, String format, String suffix) {
             this.prefix = prefix;
             this.format = format;
@@ -80,7 +82,6 @@ public class FeedHandler {
     public static void setTracker(Tracker tracker) {
         FeedHandler.tracker = tracker;
     }
-
 
 
     private static void init(String[] args) throws InterruptedException, ParseException, MalformedURLException {
@@ -276,149 +277,26 @@ public class FeedHandler {
                 DataFileTrailer trailer = null;
                 DataFileHeader header = null;
                 String line;
-                int lineNumber;
                 while ((line = reader.readLine()) != null) {
-                    Matcher m;
-                    System.out.println(line);
-
-                    m = DataFileHeader.pattern.matcher(line);
-                    if (m.matches()) {
-                        DateFormat headerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
-
-                        header = new DataFileHeader()
-                                .withDataFileHeaderRecordType(m.group("dataFileHeaderRecordType"))
-                                .withDataFileHeaderDateTime(headerDateTime.parse(
-                                        m.group("dataFileHeaderDate") +
-                                                m.group("dataFileHeaderTime")))
-                                .withDataFileHeaderFileID(Long.valueOf(m.group("dataFileHeaderFileID")))
-                                .withDataFileHeaderFileName(m.group("dataFileHeaderFileName"));
-
-                        LOGGER.debug(header.toString());
-                        continue;
-                    }
-
-                    m = Summary.pattern.matcher(line);
-                    if (m.matches()) {
-
-                        Summary summary = new Summary()
-                                .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
-                                .withPaymentYear(Long.valueOf(m.group("paymentYear")))
-                                .withPaymentNumber(m.group("paymentNumber"))
-                                .withRecordType(Long.valueOf(m.group("recordType")))
-                                .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
-                                .withPaymentDate(julianDate.parse(m.group("paymentDate")))
-                                .withPaymentAmount(AmountParser.toLong(m.group("paymentAmountPrefix"), m.group("paymentAmountSuffix")))
-                                .withDebitBalanceAmount(AmountParser.toLong(m.group("debitBalanceAmountPrefix"), m.group("debitBalanceAmountSuffix")))
-                                .withAbaBankNumber(Long.valueOf(m.group("abaBankNumber")))
-                                .withPayeeDirectDepositAccountNumber(m.group("payeeDirectDepositAccountNumber").replace(" ", ""));
-                        summaries.add(summary);
-                        LOGGER.debug(summary.toString());
-                        continue;
-                    }
-
-                    m = SOCDetail.pattern.matcher(line);
-                    if (m.matches()) {
-                        SOCDetail socDetail = new SOCDetail()
-                                .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
-                                .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
-                                .withSeUnitNumber(m.group("seUnitNumber").trim())
-                                .withPaymentYear(Long.valueOf(m.group("paymentYear")))
-                                .withPaymentNumber(m.group("paymentNumber"))
-                                .withRecordType(Long.valueOf(m.group("recordType")))
-                                .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
-                                .withSeBusinessDate(julianDate.parse(m.group("seBusinessDate")))
-                                .withAmexProcessDate(julianDate.parse(m.group("amexProcessDate")))
-                                .withSocInvoiceNumber(Long.valueOf(m.group("socInvoiceNumber")))
-                                .withSocAmount(AmountParser.toLong(m.group("socAmountPrefix"), m.group("socAmountSuffix")))
-                                .withDiscountAmount(AmountParser.toLong(m.group("discountAmountPrefix"), m.group("discountAmountSuffix")))
-                                .withServiceFeeAmount(AmountParser.toLong(m.group("serviceFeeAmountPrefix"), m.group("serviceFeeAmountSuffix")))
-                                .withNetSOCAmount(AmountParser.toLong(m.group("netSOCAmountPrefix"), m.group("netSOCAmountSuffix")))
-                                .withDiscountRate(Long.valueOf(m.group("discountRate")))
-                                .withServiceFeeRate(Long.valueOf(m.group("serviceFeeRate")))
-                                .withAmexGrossAmount(AmountParser.toLong(m.group("amexGrossAmountPrefix"), m.group("amexGrossAmountSuffix")))
-                                .withAmexROCCount(AmountParser.toLong(m.group("amexROCCountPrefix"), m.group("amexROCCountSuffix")))
-                                .withTrackingId(Long.valueOf(m.group("trackingId")))
-                                .withCpcIndicator(m.group("cpcIndicator").equals("P"))
-                                .withAmexROCCountPOA(AmountParser.toLong(m.group("amexROCCountPOAPrefix"), m.group("amexROCCountPOASuffix")));
-                        socDetails.add(socDetail);
-                        LOGGER.debug(socDetail.toString());
-                        continue;
-                    }
-
-
-                    m = ROCDetail.pattern.matcher(line);
-                    if (m.matches()) {
-                        ROCDetail rocDetail = new ROCDetail()
-                                .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
-                                .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
-                                .withSeUnitNumber(m.group("seUnitNumber").trim())
-                                .withPaymentYear(Long.valueOf(m.group("paymentYear")))
-                                .withPaymentNumber(m.group("paymentNumber"))
-                                .withRecordType(Long.valueOf(m.group("recordType")))
-                                .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
-                                .withSeBusinessDate(julianDate.parse(m.group("seBusinessDate")))
-                                .withAmexProcessDate(julianDate.parse(m.group("amexProcessDate")))
-                                .withSocInvoiceNumber(Long.valueOf(m.group("socInvoiceNumber")))
-                                .withSocAmount(AmountParser.toLong(m.group("socAmountPrefix"), m.group("socAmountSuffix")))
-                                .withRocAmount(AmountParser.toLong(m.group("rocAmountPrefix"), m.group("rocAmountSuffix")))
-                                .withCardMemberNumber(m.group("cardMemberNumber"))
-                                .withCardMemberReferenceNumber(m.group("cardMemberReferenceNumber").trim())
-                                .withTransactionDate(julianDate.parse(m.group("transactionDate")))
-                                .withInvoiceReferenceNumber(m.group("invoiceReferenceNumber").trim())
-                                .withNonCompliantIndicator(m.group("nonCompliantIndicator").trim())
-                                .withNonCompliantErrorCode1(m.group("nonCompliantErrorCode1").trim())
-                                .withNonCompliantErrorCode2(m.group("nonCompliantErrorCode2").trim())
-                                .withNonCompliantErrorCode3(m.group("nonCompliantErrorCode3").trim())
-                                .withNonCompliantErrorCode4(m.group("nonCompliantErrorCode4").trim())
-                                .withNonSwipedIndicator(m.group("nonSwipedIndicator").trim())
-                                .withCardMemberNumberExtended(m.group("cardMemberNumberExtended").trim());
-                        rocDetails.add(rocDetail);
-
-                        LOGGER.debug(rocDetail.toString());
-                        continue;
-                    }
-
-                    m = AdjustmentDetail.pattern.matcher(line);
-                    if (m.matches()) {
-                        AdjustmentDetail adjustmentDetail = new AdjustmentDetail()
-                                .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
-                                .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
-                                .withSeUnitNumber(m.group("seUnitNumber").trim())
-                                .withPaymentYear(Long.parseLong(m.group("paymentYear")))
-                                .withPaymentNumber(m.group("paymentNumber"))
-                                .withRecordType(Long.parseLong(m.group("recordType")))
-                                .withAmexProcessDate(julianDate.parse(m.group("amexProcessDate")))
-                                .withAdjustmentNumber(Long.valueOf(m.group("adjustmentNumber")))
-                                .withAdjustmentAmount(AmountParser.toLong(m.group("adjustmentAmountPrefix"), m.group("adjustmentAmountSuffix")))
-                                .withDiscountAmount(AmountParser.toLong(m.group("discountAmountPrefix"), m.group("discountAmountSuffix")))
-                                .withServiceFeeAmount(AmountParser.toLong(m.group("serviceFeeAmountPrefix"), m.group("serviceFeeAmountSuffix")))
-                                .withNetAdjustmentAmount(AmountParser.toLong(m.group("netAdjustmentAmountPrefix"), m.group("netAdjustmentAmountSuffix")))
-                                .withDiscountRate(Long.valueOf(m.group("discountRate")))
-                                .withServiceFeeRate(Long.valueOf(m.group("serviceFeeRate")))
-                                .withCardMemberNumber(m.group("cardmemberNumber").trim())
-                                .withAdjustmentReason(m.group("adjustmentReason").trim());
-                        adjustmentDetails.add(adjustmentDetail);
-
-                        LOGGER.debug(adjustmentDetail.toString());
-                        continue;
-                    }
-
-                    m = DataFileTrailer.pattern.matcher(line);
-                    if (m.matches()) {
-                        DateFormat trailerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
-
-                        trailer = new DataFileTrailer()
-                                .withDataFileTrailerRecordType(m.group("dataFileTrailerRecordType"))
-                                .withDataFileTrailerDateTime(trailerDateTime.parse(
-                                        m.group("dataFileTrailerDate") +
-                                                m.group("dataFileTrailerTime")))
-                                .withDataFileTrailerFileID(Long.valueOf(m.group("dataFileTrailerFileID")))
-                                .withDataFileTrailerFileName(m.group("dataFileTrailerFileName"))
-                                .withDataFileTrailerRecipientKey(m.group("dataFileTrailerRecipientKey"))
-                                .withDataFileTrailerRecordCount(Long.valueOf(m.group("dataFileTrailerRecordCount")));
-
-                        LOGGER.debug(trailer.toString());
-                        continue;
+                    Object record;
+                    if ((record = DataFileTrailer.parse(line)) != null) {
+                        trailer = (DataFileTrailer) record;
+                        LOGGER.debug(record.toString());
+                    } else if ((record = DataFileHeader.parse(line)) != null) {
+                        header = (DataFileHeader) record;
+                        LOGGER.debug(record.toString());
+                    } else if ((record = Summary.parse(line)) != null) {
+                        LOGGER.debug(record.toString());
+                        summaries.add((Summary) record);
+                    } else if ((record = ROCDetail.parse(line)) != null) {
+                        LOGGER.debug(record.toString());
+                        rocDetails.add((ROCDetail) record);
+                    } else if ((record = SOCDetail.parse(line)) != null) {
+                        LOGGER.debug(record.toString());
+                        socDetails.add((SOCDetail) record);
+                    } else if ((record = AdjustmentDetail.parse(line)) != null) {
+                        LOGGER.debug(record.toString());
+                        adjustmentDetails.add((AdjustmentDetail) record);
                     }
                 }
                 // Every line in the file downloaded has been parsed, you have json and csv data available now
@@ -474,7 +352,6 @@ public class FeedHandler {
                 uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
 
 
-
             }
 
             c.exit();
@@ -518,6 +395,7 @@ public class FeedHandler {
         uploadTask.put("type", type);
         return uploadTask;
     }
+
     // This should take a manifest, not sql statement
     private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) {
         // If s3 files were uploaded
@@ -526,52 +404,52 @@ public class FeedHandler {
         AmazonS3URI manifestURI = new AmazonS3URI("s3://" + bucket + "/" + key); // validate!
 
         try {
-                LOGGER.info("Loading {}", manifest.toString());
-                AWSCredentialsProvider credentialsProvider;
-                if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
-                        configuration.get().getString("sink.s3.credentials.secretKey") == null) {
-                    credentialsProvider = new DefaultAWSCredentialsProviderChain();
-                } else {
-                    credentialsProvider = new AWSStaticCredentialsProvider(
-                            new BasicAWSCredentials(
-                                    configuration.get().getString("sink.s3.credentials.accessKey"),
-                                    configuration.get().getString("sink.s3.credentials.secretKey")
-                            )
-                    );
-                }
-                AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                        .withRegion(Regions.US_EAST_1)
-                        .withCredentials(credentialsProvider)
-                        .withAccelerateModeEnabled(false)
-                        .build();
-
-                ObjectMetadata manifestMetadata = new ObjectMetadata();
-                manifestMetadata.setContentType("application/json");
-                manifestMetadata.setContentEncoding("UTF-8");
-
-                PutObjectRequest req = new PutObjectRequest(
-                        configuration.get().getString("sink.s3.bucket.name"),
-                        key,
-                        new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
-                        manifestMetadata
+            LOGGER.info("Loading {}", manifest.toString());
+            AWSCredentialsProvider credentialsProvider;
+            if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
+                    configuration.get().getString("sink.s3.credentials.secretKey") == null) {
+                credentialsProvider = new DefaultAWSCredentialsProviderChain();
+            } else {
+                credentialsProvider = new AWSStaticCredentialsProvider(
+                        new BasicAWSCredentials(
+                                configuration.get().getString("sink.s3.credentials.accessKey"),
+                                configuration.get().getString("sink.s3.credentials.secretKey")
+                        )
                 );
-                s3.putObject(req);
+            }
+            AmazonS3 s3 = AmazonS3ClientBuilder.standard()
+                    .withRegion(Regions.US_EAST_1)
+                    .withCredentials(credentialsProvider)
+                    .withAccelerateModeEnabled(false)
+                    .build();
 
-                Connection c = DriverManager.getConnection(
-                        configuration.get().getString("sink.redshift.jdbc.url"),
-                        configuration.get().getString("sink.redshift.jdbc.usr"),
-                        configuration.get().getString("sink.redshift.jdbc.pwd")
-                );
-                c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
+            ObjectMetadata manifestMetadata = new ObjectMetadata();
+            manifestMetadata.setContentType("application/json");
+            manifestMetadata.setContentEncoding("UTF-8");
 
-                PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
-                session_setup.execute();
+            PutObjectRequest req = new PutObjectRequest(
+                    configuration.get().getString("sink.s3.bucket.name"),
+                    key,
+                    new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
+                    manifestMetadata
+            );
+            s3.putObject(req);
 
-                // THERE ARE DUPLICATE RECORDS IN TRANSACTioN SEARCH REPORTS THAT SPAWN DIFFERENT TIME FRAMES
-                // BASED ON OBSERVED SAMPLES THE RECORDS APPEAR IDENTICAL. INSTEAD OF A STRAIGHT LOAD, TRY LOADING
-                // INTO TEMPORARY TABLE, DELETE CONFLICTING RECORDS FROM PRODUCTION, THEN RE-INSERT. DO ALL IN TRANSACTION.
-                c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-                c.setAutoCommit(false);
+            Connection c = DriverManager.getConnection(
+                    configuration.get().getString("sink.redshift.jdbc.url"),
+                    configuration.get().getString("sink.redshift.jdbc.usr"),
+                    configuration.get().getString("sink.redshift.jdbc.pwd")
+            );
+            c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
+
+            PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
+            session_setup.execute();
+
+            // THERE ARE DUPLICATE RECORDS IN TRANSACTioN SEARCH REPORTS THAT SPAWN DIFFERENT TIME FRAMES
+            // BASED ON OBSERVED SAMPLES THE RECORDS APPEAR IDENTICAL. INSTEAD OF A STRAIGHT LOAD, TRY LOADING
+            // INTO TEMPORARY TABLE, DELETE CONFLICTING RECORDS FROM PRODUCTION, THEN RE-INSERT. DO ALL IN TRANSACTION.
+            c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            c.setAutoCommit(false);
 
             String targetTable = null;
             String deleteKey = null;
@@ -596,45 +474,45 @@ public class FeedHandler {
                     break;
             }
             String creteTemp = "CREATE TEMPORARY TABLE temp_" + targetTable + "( LIKE " + targetTable + "  );";
-                LOGGER.info(creteTemp);
-                PreparedStatement s = c.prepareStatement(creteTemp);
-                s.execute();
+            LOGGER.info(creteTemp);
+            PreparedStatement s = c.prepareStatement(creteTemp);
+            s.execute();
 
-                /**
-                 copy customer
-                 from 's3://mybucket/cust.manifest'
-                 iam_role 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
-                 manifest;
+            /**
+             copy customer
+             from 's3://mybucket/cust.manifest'
+             iam_role 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
+             manifest;
 
-                 */
-                String copyCommand =
-                        "COPY  temp_" + targetTable +
-                                " FROM '" + manifestURI.getURI() + "'\n " +
-                                " CREDENTIALS '" + configuration.get().getString("sink.redshift.jdbc.credentials") + "' " +
-                                " MANIFEST CSV IGNOREHEADER 1;";
+             */
+            String copyCommand =
+                    "COPY  temp_" + targetTable +
+                            " FROM '" + manifestURI.getURI() + "'\n " +
+                            " CREDENTIALS '" + configuration.get().getString("sink.redshift.jdbc.credentials") + "' " +
+                            " MANIFEST CSV IGNOREHEADER 1;";
 
-                LOGGER.info(copyCommand);
-                s = c.prepareStatement(copyCommand);
-                s.execute();
+            LOGGER.info(copyCommand);
+            s = c.prepareStatement(copyCommand);
+            s.execute();
 
             String deleteOld = "DELETE FROM " + targetTable +
                     " WHERE EXISTS ( SELECT 1 FROM temp_" + targetTable +
                     " WHERE temp_" + targetTable + "." + deleteKey + " = " + targetTable + "." + deleteKey + ");";
-                LOGGER.info(deleteOld);
-                s = c.prepareStatement(deleteOld);
-                s.execute();
+            LOGGER.info(deleteOld);
+            s = c.prepareStatement(deleteOld);
+            s.execute();
 
             String insertNew = "INSERT INTO " + targetTable +
                     " select t.* " +
                     " from temp_" + targetTable + " t" +
                     " left outer join  " + targetTable + " p using (" + deleteKey + ")" +
                     " where p." + deleteKey + " is null";
-                LOGGER.info(insertNew);
-                s = c.prepareStatement(insertNew);
-                s.execute();
+            LOGGER.info(insertNew);
+            s = c.prepareStatement(insertNew);
+            s.execute();
 
-                c.commit();
-                c.setAutoCommit(true);
+            c.commit();
+            c.setAutoCommit(true);
 
         } catch (SQLException e) {
             e.printStackTrace();

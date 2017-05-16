@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.supercsv.cellprocessor.FmtDate;
@@ -23,8 +24,11 @@ import javax.validation.constraints.Size;
 import java.awt.print.Book;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -45,7 +49,7 @@ import java.util.regex.Pattern;
 })
 public class Summary {
     public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSortField1>[0]{10})(?<amexSortField2>[0]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum}{1})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>1)(?<detailRecordType>00)(?<paymentDate>(?<paymentDateYear>\\p{Digit}{4})(?<paymentDateJulianDate>\\p{Digit}{3}))(?<paymentAmount>(?<paymentAmountPrefix>\\p{Digit}{10})(?<paymentAmountSuffix>[A-R}{]{1}))(?<debitBalanceAmount>(?<debitBalanceAmountPrefix>\\p{Digit}{8})(?<debitBalanceAmountSuffix>[A-R}{]{1}))(?<abaBankNumber>\\p{Digit}{9})(?<payeeDirectDepositAccountNumber>[\\p{Digit}\\p{Blank}]{1,17})(?<filler13>\\p{Blank}{352})$");
-
+    private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
     @JsonProperty("AMEX_PAYEE_NUMBER")
     @Size(max = 10)
     @javax.validation.constraints.NotNull
@@ -271,6 +275,24 @@ public class Summary {
                 .append(getAbaBankNumber())
                 .append(getPayeeDirectDepositAccountNumber())
                 .toHashCode();
+    }
+
+    public static Summary parse(String lineOfText) throws java.text.ParseException {
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            return new Summary()
+                    .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
+                    .withPaymentYear(Long.valueOf(m.group("paymentYear")))
+                    .withPaymentNumber(m.group("paymentNumber"))
+                    .withRecordType(Long.valueOf(m.group("recordType")))
+                    .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
+                    .withPaymentDate(julianDate.parse(m.group("paymentDate")))
+                    .withPaymentAmount(AmountParser.toLong(m.group("paymentAmountPrefix"), m.group("paymentAmountSuffix")))
+                    .withDebitBalanceAmount(AmountParser.toLong(m.group("debitBalanceAmountPrefix"), m.group("debitBalanceAmountSuffix")))
+                    .withAbaBankNumber(Long.valueOf(m.group("abaBankNumber")))
+                    .withPayeeDirectDepositAccountNumber(m.group("payeeDirectDepositAccountNumber").replace(" ", ""));
+        }
+        return null;
     }
 
     public static void writeCSVFile(String csvFileName, List<Summary> summaries) {

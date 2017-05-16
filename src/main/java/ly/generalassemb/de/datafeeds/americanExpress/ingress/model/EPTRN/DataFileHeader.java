@@ -10,7 +10,10 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -25,7 +28,7 @@ import java.util.regex.Pattern;
 })
 public class DataFileHeader {
     public final static Pattern pattern = Pattern.compile("^(?<dataFileHeaderRecordType>[\\p{Upper}\\p{Digit}]{5})(?<dataFileHeaderDate>\\p{Digit}{8})(?<dataFileHeaderTime>\\p{Digit}{4})(?<dataFileHeaderFileID>\\p{Digit}{6})(?<dataFileHeaderFileName>[\\p{Alnum}\\p{Space}]{1,20})[\\p{Space}]{0,407}");
-
+    private final static DateFormat headerDateTime = new SimpleDateFormat("MMddyyyyHHmm");
     @JsonProperty("DATAFILE_HEADER_RECORD_TYPE")
     @Size(max = 5)
     @NotNull
@@ -135,5 +138,19 @@ public class DataFileHeader {
                 .append(getDataFileHeaderFileID())
                 .append(getDataFileHeaderFileName())
                 .toHashCode();
+    }
+
+    public static DataFileHeader parse(String lineOfText) throws java.text.ParseException {
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            return new DataFileHeader()
+                    .withDataFileHeaderRecordType(m.group("dataFileHeaderRecordType"))
+                    .withDataFileHeaderDateTime(headerDateTime.parse(
+                            m.group("dataFileHeaderDate") +
+                                    m.group("dataFileHeaderTime")))
+                    .withDataFileHeaderFileID(Long.valueOf(m.group("dataFileHeaderFileID")))
+                    .withDataFileHeaderFileName(m.group("dataFileHeaderFileName"));
+        }
+        return null;
     }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.supercsv.cellprocessor.*;
@@ -19,8 +20,11 @@ import javax.validation.constraints.Null;
 import javax.validation.constraints.Size;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -42,7 +46,6 @@ import java.util.regex.Pattern;
         "TLRR_ROC_AMOUNT",
         "TLRR_CM_NUMBER",
         "TLRR_CM_REF_NO",
-
         "TLRR_TRAN_DATE",
         "TLRR_SE_REF_POA",
         "NON_COMPLIANT_INDICATOR",
@@ -56,7 +59,7 @@ import java.util.regex.Pattern;
 })
 public class ROCDetail {
     public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Digit}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>3)(?<detailRecordType>11)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessDate>(?<amexProcessDateYear>\\p{Digit}{4})(?<amexProcessDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socAmount>(?<socAmountPrefix>\\p{Digit}{12})(?<socAmountSuffix>[A-R}{]{1}))(?<rocAmount>(?<rocAmountPrefix>\\p{Digit}{12})(?<rocAmountSuffix>[A-R}{]{1}))(?<cardMemberNumber>[\\p{Blank}\\p{Alnum}]{15})(?<cardMemberReferenceNumber>[\\p{Blank}\\p{Alnum}]{11}).{9}\\p{Blank}{10}(?<rocNumber>[\\p{Alnum}\\p{Blank}]{10})(?<transactionDate>(?<transactionDateYear>\\p{Digit}{4})(?<transactionJulianDate>\\p{Digit}{3}))(?<invoiceReferenceNumber>[\\p{Alnum}\\p{Blank}]{30})(?<nonCompliantIndicator>[ AN]{1})(?<nonCompliantErrorCode1>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode2>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode3>[\\p{Alnum}\\p{Blank}]{4})(?<nonCompliantErrorCode4>[\\p{Alnum}\\p{Blank}]{4})(?<nonSwipedIndicator>[ CH~Z]{1})[\\p{Blank}\\p{Alnum}]{1}.{4}.{22}(?<cardMemberNumberExtended>[\\p{Blank}\\p{Alnum}]{19})(?<filler30>\\p{Blank}{203})$");
-
+    private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
     @JsonProperty("TLRR_AMEX_PAYEE_NUMBER")
     @Size(max = 10)
     @NotNull
@@ -605,6 +608,37 @@ public class ROCDetail {
                 .append(getNonSwipedIndicator())
                 .append(getCardMemberNumberExtended())
                 .toHashCode();
+    }
+
+    public static ROCDetail parse(String lineOfText) throws java.text.ParseException {
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            new ROCDetail()
+                    .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
+                    .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
+                    .withSeUnitNumber(m.group("seUnitNumber").trim())
+                    .withPaymentYear(Long.valueOf(m.group("paymentYear")))
+                    .withPaymentNumber(m.group("paymentNumber"))
+                    .withRecordType(Long.valueOf(m.group("recordType")))
+                    .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
+                    .withSeBusinessDate(julianDate.parse(m.group("seBusinessDate")))
+                    .withAmexProcessDate(julianDate.parse(m.group("amexProcessDate")))
+                    .withSocInvoiceNumber(Long.valueOf(m.group("socInvoiceNumber")))
+                    .withSocAmount(AmountParser.toLong(m.group("socAmountPrefix"), m.group("socAmountSuffix")))
+                    .withRocAmount(AmountParser.toLong(m.group("rocAmountPrefix"), m.group("rocAmountSuffix")))
+                    .withCardMemberNumber(m.group("cardMemberNumber"))
+                    .withCardMemberReferenceNumber(m.group("cardMemberReferenceNumber").trim())
+                    .withTransactionDate(julianDate.parse(m.group("transactionDate")))
+                    .withInvoiceReferenceNumber(m.group("invoiceReferenceNumber").trim())
+                    .withNonCompliantIndicator(m.group("nonCompliantIndicator").trim())
+                    .withNonCompliantErrorCode1(m.group("nonCompliantErrorCode1").trim())
+                    .withNonCompliantErrorCode2(m.group("nonCompliantErrorCode2").trim())
+                    .withNonCompliantErrorCode3(m.group("nonCompliantErrorCode3").trim())
+                    .withNonCompliantErrorCode4(m.group("nonCompliantErrorCode4").trim())
+                    .withNonSwipedIndicator(m.group("nonSwipedIndicator").trim())
+                    .withCardMemberNumberExtended(m.group("cardMemberNumberExtended").trim());
+        }
+        return null;
     }
 
     public static void writeCSVFile(String csvFileName, List<ROCDetail> records) {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.supercsv.cellprocessor.*;
@@ -18,8 +19,11 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -52,7 +56,7 @@ import java.util.regex.Pattern;
 })
 public class SOCDetail {
     public final static Pattern pattern = Pattern.compile("^(?<amexPayeeNumber>\\p{Digit}{10})(?<amexSeNumber>[\\p{Alnum}]{10})(?<seUnitNumber>[\\p{Alnum}\\p{Blank}]{10})(?<paymentYear>\\p{Digit}{4})(?<paymentNumber>(?<paymentNumberJulianDate>\\p{Digit}{3})(?<paymentNumberRecordTypeIndicator>\\p{Alnum})(?<paymentNumberSequence>\\p{Digit}{4}))(?<recordType>2)(?<detailRecordType>10)(?<seBusinessDate>(?<seBusinessDateYear>\\p{Digit}{4})(?<seBuisnessDateJulianDate>\\p{Digit}{3}))(?<amexProcessDate>(?<amexProcessDateYear>\\p{Digit}{4})(?<amexProcessDateJulianDate>\\p{Digit}{3}))(?<socInvoiceNumber>\\p{Digit}{6})(?<socAmount>(?<socAmountPrefix>\\p{Digit}{10})(?<socAmountSuffix>[A-R}{]{1}))(?<discountAmount>(?<discountAmountPrefix>\\p{Digit}{8})(?<discountAmountSuffix>[A-R}{]{1}))(?<serviceFeeAmount>(?<serviceFeeAmountPrefix>\\p{Digit}{6})(?<serviceFeeAmountSuffix>[A-R}{]{1}))[0{]{7}(?<netSOCAmount>(?<netSOCAmountPrefix>\\p{Digit}{10})(?<netSOCAmountSuffix>[A-R}{]{1}))(?<discountRate>\\p{Digit}{5})(?<serviceFeeRate>\\p{Digit}{5})0{5}[0{]{11}[0{]{5}(?<amexGrossAmount>(?<amexGrossAmountPrefix>\\p{Digit}{10})(?<amexGrossAmountSuffix>[A-R}{]{1}))(?<amexROCCount>(?<amexROCCountPrefix>\\p{Digit}{4})(?<amexROCCountSuffix>[A-I{]{1}))(?<trackingId>[\\p{Digit}\\p{Blank}]{9})(?<cpcIndicator>[\\p{Alnum}\\p{Blank}]{1})\\p{Blank}{7}\\p{Blank}{8}(?<amexROCCountPOA>(?<amexROCCountPOAPrefix>\\p{Digit}{6})(?<amexROCCountPOASuffix>[A-I{]{1})).{0,261}$");
-
+    private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
     /**
      * amexPayeeNumber
      * Numeric String 10 bytes long, required
@@ -606,6 +610,34 @@ public class SOCDetail {
                 .toHashCode();
     }
 
+    public static SOCDetail parse(String lineOfText) throws java.text.ParseException {
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            return new SOCDetail()
+                    .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
+                    .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
+                    .withSeUnitNumber(m.group("seUnitNumber").trim())
+                    .withPaymentYear(Long.valueOf(m.group("paymentYear")))
+                    .withPaymentNumber(m.group("paymentNumber"))
+                    .withRecordType(Long.valueOf(m.group("recordType")))
+                    .withDetailRecordType(Long.valueOf(m.group("detailRecordType")))
+                    .withSeBusinessDate(julianDate.parse(m.group("seBusinessDate")))
+                    .withAmexProcessDate(julianDate.parse(m.group("amexProcessDate")))
+                    .withSocInvoiceNumber(Long.valueOf(m.group("socInvoiceNumber")))
+                    .withSocAmount(AmountParser.toLong(m.group("socAmountPrefix"), m.group("socAmountSuffix")))
+                    .withDiscountAmount(AmountParser.toLong(m.group("discountAmountPrefix"), m.group("discountAmountSuffix")))
+                    .withServiceFeeAmount(AmountParser.toLong(m.group("serviceFeeAmountPrefix"), m.group("serviceFeeAmountSuffix")))
+                    .withNetSOCAmount(AmountParser.toLong(m.group("netSOCAmountPrefix"), m.group("netSOCAmountSuffix")))
+                    .withDiscountRate(Long.valueOf(m.group("discountRate")))
+                    .withServiceFeeRate(Long.valueOf(m.group("serviceFeeRate")))
+                    .withAmexGrossAmount(AmountParser.toLong(m.group("amexGrossAmountPrefix"), m.group("amexGrossAmountSuffix")))
+                    .withAmexROCCount(AmountParser.toLong(m.group("amexROCCountPrefix"), m.group("amexROCCountSuffix")))
+                    .withTrackingId(Long.valueOf(m.group("trackingId")))
+                    .withCpcIndicator(m.group("cpcIndicator").equals("P"))
+                    .withAmexROCCountPOA(AmountParser.toLong(m.group("amexROCCountPOAPrefix"), m.group("amexROCCountPOASuffix")));
+        }
+        return null;
+    }
     public static void writeCSVFile(String csvFileName, List<SOCDetail> records) {
         ICsvBeanWriter beanWriter = null;
         CellProcessor[] processors = new CellProcessor[]{
