@@ -294,6 +294,7 @@ public class FeedHandler {
                     } else if ((record = SOCDetail.parse(line)) != null) {
                         LOGGER.debug(record.toString());
                         socDetails.add((SOCDetail) record);
+                        System.out.println(((SOCDetail) record).toString());
                     } else if ((record = AdjustmentDetail.parse(line)) != null) {
                         LOGGER.debug(record.toString());
                         adjustmentDetails.add((AdjustmentDetail) record);
