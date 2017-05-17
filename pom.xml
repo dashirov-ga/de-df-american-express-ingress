@@ -409,6 +409,13 @@
             <version>2.4.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/javax.money/money-api -->
+        <dependency>
+            <groupId>javax.money</groupId>
+            <artifactId>money-api</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
     </dependencies>
 
     <profiles>
