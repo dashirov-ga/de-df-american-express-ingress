@@ -17,17 +17,17 @@ import com.snowplowanalytics.snowplow.tracker.emitter.BatchEmitter;
 import com.snowplowanalytics.snowplow.tracker.events.Event;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
 import com.squareup.okhttp.OkHttpClient;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileHeader;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileTrailer;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import org.apache.commons.cli.*;
-import org.joda.time.DateTime;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -52,7 +52,10 @@ public class FeedHandler {
         EPTRN_SUMMARY("EPTRN-SUMMARY", "CSV", ".csv"),
         EPTRN_SOC_DETAIL("EPTRN-SOC-DETAIL", "CSV", ".csv"),
         EPTRN_ROC_DETAIL("EPTRN-ROC-DETAIL", "CSV", ".csv"),
-        EPTRN_ADJUSTMENT_DETAIL("EPTRN-ADJ-DETAIL", "CSV", ".csv");
+        EPTRN_ADJUSTMENT_DETAIL("EPTRN-ADJ-DETAIL", "CSV", ".csv"),
+        CBNOT_DETAIL("CBNOT-DETAIL", "CSV", ".csv"),
+        CBNOT("CBNOT", "CBNOT", ".dat");
+
         private final String prefix;
         private final String format;
         private final String suffix;
@@ -257,104 +260,154 @@ public class FeedHandler {
             } catch (SftpException e) {
                 LOGGER.error("{} Error listing directory {}", runId, inDirectory, e);
             }
-            final ArrayList<File> filesDownloaded = new ArrayList<>();
+            final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
             for (String fileName : toBeDownloaded) {
-                File remoteFile = new File(inDirectory, fileName);
-                File localFile = File.createTempFile(fileName, ".tmp");
-                if (!skipProcessingStepsSet.contains("clean-local"))
-                    localFile.deleteOnExit();
-                LOGGER.debug("{} Downloading {} to {}", runId, remoteFile.getPath(), localFile.getAbsolutePath());
-                c.get(remoteFile.getPath(), localFile.getAbsolutePath());
-                filesDownloaded.add(localFile);
+                LOGGER.debug("prototyping {}", fileName);
+                Matcher m = FilenamePattern.matcher(fileName);
+                if (m.matches()) {
+                    String type = m.group(1);
+                    File remoteFile = new File(inDirectory, fileName);
+                    File localFile = File.createTempFile(fileName + "-", ".dat");
+                    if (!skipProcessingStepsSet.contains("clean-local"))
+                        localFile.deleteOnExit();
+                    LOGGER.debug("{} Downloading {} to {}", runId, remoteFile.getPath(), localFile.getAbsolutePath());
+                    c.get(remoteFile.getPath(), localFile.getAbsolutePath());
+
+                    Map<String, Object> entry = new HashMap<>();
+                    entry.put("type", type);
+                    entry.put("file", localFile);
+                    filesDownloaded.add(entry);
+                } else
+                    LOGGER.error("Whoa! second time around, no match!");
+
+
             }
             Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
-            for (File inputFile : filesDownloaded) {
+            for (Map<String, Object> input : filesDownloaded) {
+                File inputFile = (File) input.get("file");
+                String type = (String) input.get("type");
                 BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-                List<Summary> summaries = new ArrayList<>();
-                List<SOCDetail> socDetails = new ArrayList<>();
-                List<ROCDetail> rocDetails = new ArrayList<>();
-                List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
-                DataFileTrailer trailer = null;
-                DataFileHeader header = null;
+                String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    Object record;
-                    if ((record = DataFileTrailer.parse(line)) != null) {
-                        trailer = (DataFileTrailer) record;
-                        LOGGER.debug(record.toString());
-                    } else if ((record = DataFileHeader.parse(line)) != null) {
-                        header = (DataFileHeader) record;
-                        LOGGER.debug(record.toString());
-                    } else if ((record = Summary.parse(line)) != null) {
-                        LOGGER.debug(record.toString());
-                        summaries.add((Summary) record);
-                    } else if ((record = ROCDetail.parse(line)) != null) {
-                        LOGGER.debug(record.toString());
-                        rocDetails.add((ROCDetail) record);
-                    } else if ((record = SOCDetail.parse(line)) != null) {
-                        LOGGER.debug(record.toString());
-                        socDetails.add((SOCDetail) record);
-                        System.out.println(((SOCDetail) record).toString());
-                    } else if ((record = AdjustmentDetail.parse(line)) != null) {
-                        LOGGER.debug(record.toString());
-                        adjustmentDetails.add((AdjustmentDetail) record);
+                LOGGER.debug("Pricessing {}", uniqueFileId);
+
+                if (type.equals("EPTRN")) {
+                    DataFileHeader header = null;
+                    List<Summary> summaries = new ArrayList<>();
+                    List<SOCDetail> socDetails = new ArrayList<>();
+                    List<ROCDetail> rocDetails = new ArrayList<>();
+                    List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
+                    DataFileTrailer trailer = null;
+
+                    while ((line = reader.readLine()) != null) {
+                        LOGGER.debug("LINE:{}", line);
+                        Object record;
+                        if ((record = DataFileTrailer.parse(line)) != null) {
+                            trailer = (DataFileTrailer) record;
+                            LOGGER.debug(record.toString());
+                        } else if ((record = DataFileHeader.parse(line)) != null) {
+                            header = (DataFileHeader) record;
+                            LOGGER.debug(record.toString());
+                        } else if ((record = Summary.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            summaries.add((Summary) record);
+                        } else if ((record = ROCDetail.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            rocDetails.add((ROCDetail) record);
+                        } else if ((record = SOCDetail.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            socDetails.add((SOCDetail) record);
+                            System.out.println(((SOCDetail) record).toString());
+                        } else if ((record = AdjustmentDetail.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            adjustmentDetails.add((AdjustmentDetail) record);
+                        } else {
+                            LOGGER.error("None of the patterns matched! for this data line!");
+                        }
                     }
+                    // Every line in the file downloaded has been parsed, you have json and csv data available now
+
+
+                    LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
+                    if (summaries.size() > 0) {
+                        File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            summaryFile.deleteOnExit();
+                        else
+                            LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
+                        Summary.writeCSVFile(summaryFile.getPath(), summaries);
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SUMMARY, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId)));
+
+                    }
+
+                    if (adjustmentDetails.size() > 0) {
+                        File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            adjustmentDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
+                        AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId)));
+                    }
+
+                    if (socDetails.size() > 0) {
+                        File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            socDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
+                        SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SOC_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId)));
+                    }
+
+                    if (rocDetails.size() > 0) {
+                        File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            rocDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
+                        ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ROC_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId)));
+
+                    }
+
+                    uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
+                } else if (type.equals("CBNOT")) {
+                    ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader cbHeader = null;
+                    List<ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail> cbDetails = new ArrayList<>();
+                    ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer cbTrailer = null;
+
+                    while ((line = reader.readLine()) != null) {
+                        LOGGER.debug("LINE:{}", line);
+                        Object record;
+                        if ((record = ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            cbHeader = (ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader) record;
+                        } else if ((record = ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            cbTrailer = (ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer) record;
+                        } else if ((record = Detail.parse(line)) != null) {
+                            LOGGER.debug(record.toString());
+                            cbDetails.add((Detail) record);
+                        }
+                    }
+                    if (cbDetails.size() > 0) {
+                        File chargebackDetailsFile = File.createTempFile("chargebackdetails-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            chargebackDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("Chargeback Details CSV File: {}", chargebackDetailsFile.getPath());
+                        Detail.writeCSVFile(chargebackDetailsFile.getPath(), cbDetails);
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.CBNOT_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
+                    }
+                    uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.CBNOT, uniqueFileId));
                 }
-                // Every line in the file downloaded has been parsed, you have json and csv data available now
-
-                String uniqueFileId = trailer.getDataFileTrailerRecipientKey().replaceAll("\\p{Blank}{2,}+", "-");
-                LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
-                if (summaries.size() > 0) {
-                    File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
-                    if (!skipProcessingStepsSet.contains("clean-local"))
-                        summaryFile.deleteOnExit();
-                    else
-                        LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
-                    Summary.writeCSVFile(summaryFile.getPath(), summaries);
-                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SUMMARY, k -> new ArrayList<>());
-                    entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId)));
-
-                }
-
-                if (adjustmentDetails.size() > 0) {
-                    File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
-                    if (!skipProcessingStepsSet.contains("clean-local"))
-                        adjustmentDetailsFile.deleteOnExit();
-                    else
-                        LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
-                    AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
-                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
-                    entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId)));
-                }
-
-                if (socDetails.size() > 0) {
-                    File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
-                    if (!skipProcessingStepsSet.contains("clean-local"))
-                        socDetailsFile.deleteOnExit();
-                    else
-                        LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
-                    SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
-                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SOC_DETAIL, k -> new ArrayList<>());
-                    entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId)));
-                }
-
-                if (rocDetails.size() > 0) {
-                    File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
-                    if (!skipProcessingStepsSet.contains("clean-local"))
-                        rocDetailsFile.deleteOnExit();
-                    else
-                        LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
-                    ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
-                    List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ROC_DETAIL, k -> new ArrayList<>());
-                    entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId)));
-
-                }
-
-                uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
-
-
             }
-
             c.exit();
 
             if (!redshiftLoadable.isEmpty()) {
@@ -471,6 +524,9 @@ public class FeedHandler {
                     targetTable = "american_express_revenue_activity_adjustment_detail";
                     deleteKey = "payment_number";
                     break;
+                case CBNOT_DETAIL:
+                    targetTable = "american_express_revenue_activity_chargeback_detail";
+                    deleteKey = "chargeback_adjustment_number";
                 default:
                     break;
             }
@@ -571,6 +627,13 @@ public class FeedHandler {
                 key,
                 f); // takes File not String fileName...
         req.setTagging(new ObjectTagging(tags));
+        ObjectMetadata meta = new ObjectMetadata();
+        if (f.getName().endsWith(".csv")) {
+            meta.setContentType("text/csv");
+        } else if (f.getName().endsWith(".dat")) {
+            meta.setContentType("text/plain");
+        }
+        req.setMetadata(meta);
         s3.putObject(req);
         return new AmazonS3URI("s3://" + configuration.get().getString("sink.s3.bucket.name") +
                 "/" + key);

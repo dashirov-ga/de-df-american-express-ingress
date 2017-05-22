@@ -613,7 +613,7 @@ public class ROCDetail {
     public static ROCDetail parse(String lineOfText) throws java.text.ParseException {
         Matcher m = pattern.matcher(lineOfText);
         if (m.matches()) {
-            new ROCDetail()
+            return new ROCDetail()
                     .withAmexPayeeNumber(Long.valueOf(m.group("amexPayeeNumber")))
                     .withAmexSeNumber(Long.valueOf(m.group("amexSeNumber")))
                     .withSeUnitNumber(m.group("seUnitNumber").trim())
@@ -637,8 +637,9 @@ public class ROCDetail {
                     .withNonCompliantErrorCode4(m.group("nonCompliantErrorCode4").trim())
                     .withNonSwipedIndicator(m.group("nonSwipedIndicator").trim())
                     .withCardMemberNumberExtended(m.group("cardMemberNumberExtended").trim());
+        } else {
+            return null;
         }
-        return null;
     }
 
     public static void writeCSVFile(String csvFileName, List<ROCDetail> records) {

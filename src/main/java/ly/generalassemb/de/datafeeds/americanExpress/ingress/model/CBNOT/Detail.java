@@ -4,17 +4,37 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JacksonStdImpl;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.SOCDetail;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.javamoney.moneta.format.MonetaryAmountDecimalFormatBuilder;
+import org.supercsv.cellprocessor.*;
+import org.supercsv.cellprocessor.constraint.NotNull;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
+import org.supercsv.quote.AlwaysQuoteMode;
 
+import javax.money.Monetary;
 import javax.money.MonetaryAmount;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import javax.money.format.MonetaryAmountFormat;
+import javax.money.format.MonetaryFormats;
 import java.util.Currency;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,17 +43,45 @@ import java.util.regex.Pattern;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-        "dataFileHeaderRecordType",
-        "amexApplication",
-        "serviceAccessId",
-        "dataType",
-        "originalFileTransmissionDateTime"
+        "dataFileRecordType",
+        "serviceEstablishmentNumber",
+        "cardMemberAccountNumber",
+        "currentCaseNumber",
+        "previousCaseNumber",
+        "resolution",
+        "adjustmentDate",
+        "chargeDate",
+        "caseType",
+        "locationNumber",
+        "chargebackReasonCode",
+        "chargebackAmount",
+        "chargebackAdjustmentNumber",
+        "chargebackResolutionAdjustmentNumber",
+        "chargebackReferenceCode",
+        "billedAmount",
+        "socAmount",
+        "socInvoiceNumber",
+        "rocInvoiceNumber",
+        "foreignAmount",
+        "foreignCurrency",
+        "supportToFollow",
+        "cardMemberName1",
+        "cardMemberName2v",
+        "cardMemberAddress1",
+        "cardMemberAddress2",
+        "cardMemberCityState",
+        "cardMemberZip",
+        "cardMemberFirstName1",
+        "cardMemberMiddleName1",
+        "cardMemberLastName1",
+        "cardMemberOriginalAccountNumber"
 })
 public class Detail {
-    public final static Pattern pattern = Pattern.compile("^(?<dataFileRecordType>D)(?<filler2>\\p{Space}{5})(?<serviceEstablishmentNumber>\\p{ASCII}{10})(?<filler4>\\p{Space}{10})(?<cardMemberAccountNumber>[\\p{Space}\\p{Alnum}]{19})(?<filler6>\\p{Space}{1})(?<currentCaseNumber>\\p{ASCII}{11})(?<currentActionNumber>\\p{ASCII}{2})(?<previousCaseNumber>\\p{ASCII}{11})(?<previousActionNumber>\\p{ASCII}{2})(?<resolution>[YN]{1})(?<fromSystem>[\\p{Space}FRSTXPG]{1})(?<rejectsToSystem>[\\p{Space}RSTXPG]{1})(?<disputesToSystem>[\\p{Space}RSTXPG]{1})(?<adjustmentDate>\\p{Digit}{8})(?<chargeDate>\\p{Digit}{8})(?<amexEmployeeId>\\p{ASCII}{7})(?<filler18>\\p{Space}{5})(?<caseType>\\p{ASCII}{6})(?<locationNumber>\\p{ASCII}{15})(?<chargebackReasonCode>\\p{Alnum}{3})(?<chargebackAmount>[\\{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<chargebackAdjustmentNumber>\\p{ASCII}{6})(?<chargebackResolutionAdjustmentNumber>\\p{ASCII}{6})(?<chargebackReferenceCode>\\p{ASCII}{12})(?<filler26>\\p{Space}{13})(?<billedAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socInvoiceNumber>\\p{ASCII}{6})(?<chargeInvoiceNumber>\\p{ASCII}{6})(?<foreignAmount>\\p{ASCII}{15})(?<currency>\\p{Upper}{3})(?<supportToFollow>[YIRN]{1})(?<cardMemberName1>\\p{ASCII}{30})(?<cardMemberName2>\\p{ASCII}{30})(?<cardMemberAddress1>\\p{ASCII}{30})(?<cardMemberAddress2>\\p{ASCII}{30})(?<cardMemberCityState>\\p{ASCII}{30})(?<cardMemberZip>\\p{ASCII}{9})(?<cardMemberFirstName1>\\p{ASCII}{12})(?<cardMemberMiddleName1>\\p{ASCII}{12})(?<cardMemberLastName1>\\p{ASCII}{20})(?<cardMemberOriginalAccountNumber>\\p{ASCII}{15})(?<cardMemberOriginalName>\\p{ASCII}{30})(?<cardMemberOriginalFirstName>\\p{ASCII}{12})(?<cardMemberOriginalMiddleName>\\p{ASCII}{12})(?<cardMemberOriginalLastName>\\p{ASCII}{20})(?<note1>\\p{ASCII}{66})(?<note2>\\p{ASCII}{78})(?<note3>\\p{ASCII}{60})(?<note4>\\p{ASCII}{60})(?<note5>\\p{ASCII}{60})(?<note6>\\p{ASCII}{60})(?<note7>\\p{ASCII}{60})(?<triumphSequenceNumber>\\p{ASCII}{2})(?<filler56>\\p{Space}{20})(?<filler57>\\p{Space}{15})(?<filler58>\\p{Space}{10})(?<industrySpecificPayload>\\p{ASCII}{1172})");
-    private final static DateFormat headerDateTime = new SimpleDateFormat("yyyyDDDHHmmss");
+    public final static Pattern pattern = Pattern.compile("^(?<dataFileRecordType>D)(?<filler2>\\p{Space}{5})(?<serviceEstablishmentNumber>\\p{ASCII}{10})(?<filler4>\\p{Space}{10})(?<cardMemberAccountNumber>[\\p{Space}\\p{Alnum}]{19})(?<filler6>\\p{Space}{1})(?<currentCaseNumber>\\p{ASCII}{11})(?<currentActionNumber>\\p{ASCII}{2})(?<previousCaseNumber>\\p{ASCII}{11})(?<previousActionNumber>\\p{ASCII}{2})(?<resolution>[YN]{1})(?<fromSystem>[\\p{Space}FRSTXPG]{1})(?<rejectsToSystem>[\\p{Space}RSTXPG]{1})(?<disputesToSystem>[\\p{Space}RSTXPG]{1})(?<adjustmentDate>\\p{Digit}{8})(?<chargeDate>\\p{Digit}{8})(?<amexEmployeeId>\\p{ASCII}{7})(?<filler18>\\p{Space}{5})(?<caseType>\\p{ASCII}{6})(?<locationNumber>\\p{ASCII}{15})(?<chargebackReasonCode>\\p{Alnum}{3})(?<chargebackAmount>[\\{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<chargebackAdjustmentNumber>\\p{ASCII}{6})(?<chargebackResolutionAdjustmentNumber>\\p{ASCII}{6})(?<chargebackReferenceCode>\\p{ASCII}{12})(?<filler26>\\p{Space}{13})(?<billedAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socInvoiceNumber>\\p{ASCII}{6})(?<rocInvoiceNumber>\\p{ASCII}{6})(?<foreignAmount>\\p{ASCII}{15})(?<foreignCurrency>\\p{Upper}{3})(?<supportToFollow>[YIRN]{1})(?<cardMemberName1>\\p{ASCII}{30})(?<cardMemberName2>\\p{ASCII}{30})(?<cardMemberAddress1>\\p{ASCII}{30})(?<cardMemberAddress2>\\p{ASCII}{30})(?<cardMemberCityState>\\p{ASCII}{30})(?<cardMemberZip>\\p{ASCII}{9})(?<cardMemberFirstName1>\\p{ASCII}{12})(?<cardMemberMiddleName1>\\p{ASCII}{12})(?<cardMemberLastName1>\\p{ASCII}{20})(?<cardMemberOriginalAccountNumber>\\p{ASCII}{15})(?<cardMemberOriginalName>\\p{ASCII}{30})(?<cardMemberOriginalFirstName>\\p{ASCII}{12})(?<cardMemberOriginalMiddleName>\\p{ASCII}{12})(?<cardMemberOriginalLastName>\\p{ASCII}{20})(?<note1>\\p{ASCII}{66})(?<note2>\\p{ASCII}{78})(?<note3>\\p{ASCII}{60})(?<note4>\\p{ASCII}{60})(?<note5>\\p{ASCII}{60})(?<note6>\\p{ASCII}{60})(?<note7>\\p{ASCII}{60})(?<triumphSequenceNumber>\\p{ASCII}{2})(?<filler56>\\p{Space}{20})(?<filler57>\\p{Space}{15})(?<filler58>\\p{Space}{10})(?<industrySpecificPayload>\\p{ASCII}{1172})");
+    private final static DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final DateFormat julianDate = new SimpleDateFormat("yyyyDDD");
+    private static final MonetaryAmountFormat defaultFormat = MonetaryFormats.getAmountFormat(Locale.US);
+    private static final DecimalFormat decimalFormat = new DecimalFormat();
     /**
      * dataFileRecordType
      * This field contains the constant literal “D”, a record type code that indicates that this is a
@@ -145,6 +193,7 @@ public class Detail {
      * one-digit “decimal point,” and two-digit “cents.”
      */
     @JsonProperty
+    @JsonSerialize(using = MonetaryAmountSerializer.class)
     private MonetaryAmount chargebackAmount;
 
     @JsonProperty
@@ -158,9 +207,11 @@ public class Detail {
     private String chargebackReferenceCode;
 
     @JsonProperty
+    @JsonSerialize(using = MonetaryAmountSerializer.class)
     private MonetaryAmount billedAmount;
 
     @JsonProperty
+    @JsonSerialize(using = MonetaryAmountSerializer.class)
     private MonetaryAmount socAmount;
 
     @JsonProperty
@@ -170,10 +221,11 @@ public class Detail {
     private String rocInvoiceNumber;
 
     @JsonProperty
+    @JsonSerialize(using = MonetaryAmountSerializer.class)
     private MonetaryAmount foreignAmount;
 
     @JsonProperty
-    private String currency;
+    private Currency foreignCurrency;
 
     @JsonProperty
     private SupportToFollow supportToFollow;
@@ -209,39 +261,8 @@ public class Detail {
     private String cardMemberOriginalAccountNumber;
 
 
-    public Detail(String dataFileRecordType, String serviceEstablishmentNumber, String cardMemberAccountNumber, String currentCaseNumber, String previousCaseNumber, Resolution resolution, Date adjustmentDate, Date chargeDate, CaseType caseType, String locationNumber, ChargebackReasonCode chargebackReasonCode, MonetaryAmount chargebackAmount, String chargebackAdjustmentNumber, String chargebackResolutionAdjustmentNumber, String chargebackReferenceCode, MonetaryAmount billedAmount, MonetaryAmount socAmount, String socInvoiceNumber, String rocInvoiceNumber, MonetaryAmount foreignAmount, String currency, SupportToFollow supportToFollow, String cardMemberName1, String cardMemberName2, String cardMemberAddress1, String cardMemberAddress2, String cardMemberCityState, String cardMemberZip, String cardMemberFirstName1, String cardMemberMiddleName1, String cardMemberLastName1, String cardMemberOriginalAccountNumber) {
-        this.dataFileRecordType = dataFileRecordType;
-        this.serviceEstablishmentNumber = serviceEstablishmentNumber;
-        this.cardMemberAccountNumber = cardMemberAccountNumber;
-        this.currentCaseNumber = currentCaseNumber;
-        this.previousCaseNumber = previousCaseNumber;
-        this.resolution = resolution;
-        this.adjustmentDate = adjustmentDate;
-        this.chargeDate = chargeDate;
-        this.caseType = caseType;
-        this.locationNumber = locationNumber;
-        this.chargebackReasonCode = chargebackReasonCode;
-        this.chargebackAmount = chargebackAmount;
-        this.chargebackAdjustmentNumber = chargebackAdjustmentNumber;
-        this.chargebackResolutionAdjustmentNumber = chargebackResolutionAdjustmentNumber;
-        this.chargebackReferenceCode = chargebackReferenceCode;
-        this.billedAmount = billedAmount;
-        this.socAmount = socAmount;
-        this.socInvoiceNumber = socInvoiceNumber;
-        this.rocInvoiceNumber = rocInvoiceNumber;
-        this.foreignAmount = foreignAmount;
-        this.currency = currency;
-        this.supportToFollow = supportToFollow;
-        this.cardMemberName1 = cardMemberName1;
-        this.cardMemberName2 = cardMemberName2;
-        this.cardMemberAddress1 = cardMemberAddress1;
-        this.cardMemberAddress2 = cardMemberAddress2;
-        this.cardMemberCityState = cardMemberCityState;
-        this.cardMemberZip = cardMemberZip;
-        this.cardMemberFirstName1 = cardMemberFirstName1;
-        this.cardMemberMiddleName1 = cardMemberMiddleName1;
-        this.cardMemberLastName1 = cardMemberLastName1;
-        this.cardMemberOriginalAccountNumber = cardMemberOriginalAccountNumber;
+    public Detail() {
+
     }
 
 
@@ -405,12 +426,12 @@ public class Detail {
         this.foreignAmount = foreignAmount;
     }
 
-    public String getCurrency() {
-        return currency;
+    public Currency getForeignCurrency() {
+        return foreignCurrency;
     }
 
-    public void setCurrency(String currency) {
-        this.currency = currency;
+    public void setForeignCurrency(Currency foreignCurrency) {
+        this.foreignCurrency = foreignCurrency;
     }
 
     public SupportToFollow getSupportToFollow() {
@@ -579,7 +600,7 @@ public class Detail {
         P07("The Charge was not submitted within the required timeframe."),
         P08("The individual Charge was submitted more than once."),
         P22("The Card Number in the Submission does not match the Card Number in the original Charge."),
-        P23("The Charge was incurred in an invalid currency."),
+        P23("The Charge was incurred in an invalid foreignCurrency."),
         R03("Complete support and/or documentation were not provided as requested."),
         R13("We did not receive your response to our Inquiry within the specified timeframe."),
         M11("We recently debited your account for the adjustment amount indicated. We have now received your credit for this charge and we are reversing the debit and crediting your account."),
@@ -736,8 +757,8 @@ public class Detail {
         return this;
     }
 
-    public Detail withCurrency(String currency) {
-        this.currency = currency;
+    public Detail withForeignCurrency(Currency foreignCurrency) {
+        this.foreignCurrency = foreignCurrency;
         return this;
     }
 
@@ -825,7 +846,7 @@ public class Detail {
                 .append(getSocInvoiceNumber(), detail.getSocInvoiceNumber())
                 .append(getRocInvoiceNumber(), detail.getRocInvoiceNumber())
                 .append(getForeignAmount(), detail.getForeignAmount())
-                .append(getCurrency(), detail.getCurrency())
+                .append(getForeignCurrency(), detail.getForeignCurrency())
                 .append(getSupportToFollow(), detail.getSupportToFollow())
                 .append(getCardMemberName1(), detail.getCardMemberName1())
                 .append(getCardMemberName2(), detail.getCardMemberName2())
@@ -863,7 +884,7 @@ public class Detail {
                 .append(getSocInvoiceNumber())
                 .append(getRocInvoiceNumber())
                 .append(getForeignAmount())
-                .append(getCurrency())
+                .append(getForeignCurrency())
                 .append(getSupportToFollow())
                 .append(getCardMemberName1())
                 .append(getCardMemberName2())
@@ -889,4 +910,178 @@ public class Detail {
     }
 
     // TODO: add parser
+    public static Detail parse(String lineOfText) throws java.text.ParseException {
+        decimalFormat.setParseBigDecimal(true);
+        Matcher m = pattern.matcher(lineOfText);
+        if (m.matches()) {
+            return new Detail()
+                    .withDataFileRecordType(m.group("dataFileRecordType").trim())
+                    .withServiceEstablishmentNumber(m.group("serviceEstablishmentNumber").trim())
+                    .withCardMemberAccountNumber(m.group("cardMemberAccountNumber").trim())
+                    .withCurrentCaseNumber(m.group("currentCaseNumber").trim())
+                    .withPreviousCaseNumber(m.group("previousCaseNumber").trim())
+                    .withResolution(Resolution.valueOf(m.group("resolution").trim()))
+                    .withAdjustmentDate(dateFormat.parse(m.group("adjustmentDate").trim()))
+                    .withChargeDate(dateFormat.parse(m.group("chargeDate").trim()))
+                    .withCaseType(CaseType.valueOf(m.group("caseType").trim()))
+                    .withLocationNumber(m.group("locationNumber").trim())
+                    .withChargebackReasonCode(ChargebackReasonCode.valueOf(m.group("chargebackReasonCode").trim()))
+                    .withChargebackAmount(
+                            Monetary.getDefaultAmountFactory()
+                                    .setCurrency("USD")
+                                    .setNumber(decimalFormat.parse(m.group("chargebackAmount"))
+                                    ).create()
+                    )
+                    .withChargebackAdjustmentNumber(m.group("chargebackAdjustmentNumber").trim())
+                    .withChargebackResolutionAdjustmentNumber(m.group("chargebackResolutionAdjustmentNumber").trim())
+                    .withChargebackReferenceCode(m.group("chargebackReferenceCode").trim())
+                    .withBilledAmount(
+                            Monetary.getDefaultAmountFactory()
+                                    .setCurrency("USD")
+                                    .setNumber(decimalFormat.parse(m.group("billedAmount"))
+                                    ).create()
+                    )
+                    .withSocAmount(
+                            Monetary.getDefaultAmountFactory()
+                                    .setCurrency("USD")
+                                    .setNumber(decimalFormat.parse(m.group("socAmount"))
+                                    ).create()
+                    )
+                    .withSocInvoiceNumber(m.group("socInvoiceNumber").trim())
+                    .withRocInvoiceNumber(m.group("rocInvoiceNumber").trim())
+                    .withForeignAmount(
+                            Monetary.getDefaultAmountFactory()
+                                    .setCurrency(m.group("foreignCurrency").trim())
+                                    .setNumber(decimalFormat.parse(m.group("foreignAmount").trim())
+                                    ).create()
+                    )
+                    .withForeignCurrency(Currency.getInstance(m.group("foreignCurrency").trim()))
+                    .withSupportToFollow(SupportToFollow.valueOf(m.group("supportToFollow").trim()))
+                    .withCardMemberName1(m.group("cardMemberName1").trim())
+                    .withCardMemberName2(m.group("cardMemberName2").trim())
+                    .withCardMemberAddress1(m.group("cardMemberAddress1").trim())
+                    .withCardMemberAddress2(m.group("cardMemberAddress2").trim())
+                    .withCardMemberCityState(m.group("cardMemberCityState").trim())
+                    .withCardMemberZip(m.group("cardMemberZip").trim())
+                    .withCardMemberFirstName1(m.group("cardMemberFirstName1").trim())
+                    .withCardMemberMiddleName1(m.group("cardMemberMiddleName1").trim())
+                    .withCardMemberLastName1(m.group("cardMemberLastName1").trim())
+                    .withCardMemberOriginalAccountNumber(m.group("cardMemberOriginalAccountNumber").trim());
+
+
+        }
+        return null;
+    }
+
+    public static class MonetaryAmountSerializer extends JsonSerializer<MonetaryAmount> {
+        public void serialize(MonetaryAmount monetaryAmount,
+                              JsonGenerator jsonGenerator,
+                              SerializerProvider serializerProvider) throws IOException {
+            StringBuilder sb = new StringBuilder();
+            MonetaryAmountDecimalFormatBuilder
+                    .of("###0.00").withCurrencyUnit(monetaryAmount.getCurrency()).build()
+                    .print(sb, monetaryAmount);
+            jsonGenerator.writeString(sb.toString());
+        }
+    }
+
+    /**
+     * dataFileRecordType
+     * serviceEstablishmentNumber
+     * cardMemberAccountNumber
+     * currentCaseNumber
+     * previousCaseNumber
+     * resolution
+     * adjustmentDate
+     * chargeDate
+     * caseType
+     * locationNumber
+     * chargebackReasonCode
+     * chargebackAmount
+     * chargebackAdjustmentNumber
+     * chargebackResolutionAdjustmentNumber
+     * chargebackReferenceCode
+     * billedAmount
+     * socAmount
+     * socInvoiceNumber
+     * rocInvoiceNumber
+     * foreignAmount
+     * foreignCurrency
+     * supportToFollow
+     * cardMemberName1
+     * cardMemberName2
+     * cardMemberAddress1
+     * cardMemberAddress2
+     * cardMemberCityState
+     * cardMemberZip
+     * cardMemberFirstName1
+     * cardMemberMiddleName1
+     * cardMemberLastName1
+     * cardMemberOriginalAccountNumber
+     */
+
+    public static void writeCSVFile(String csvFileName, List<Detail> records) {
+        ICsvBeanWriter beanWriter = null;
+        CellProcessor[] processors = new CellProcessor[]{
+                new org.supercsv.cellprocessor.constraint.NotNull(),  // RecordType
+                new ParseLong(), // seNumber
+                new org.supercsv.cellprocessor.constraint.NotNull(), // cardmember account
+                new org.supercsv.cellprocessor.constraint.NotNull(), // current case
+                new org.supercsv.cellprocessor.constraint.NotNull(), // prev case
+                new org.supercsv.cellprocessor.constraint.NotNull(), // resolution
+                new FmtDate("yyyy-MM-dd"), // adjustment Date
+                new FmtDate("yyyy-MM-dd"), // charge  date
+                new org.supercsv.cellprocessor.constraint.NotNull(), // case type
+                new Optional(), // location numbner
+                new org.supercsv.cellprocessor.constraint.NotNull(), // chargeback reason
+                new ParseBigDecimal(), // chargeback Amount
+                new Trim(), // chargeback adj num
+                new Optional(), // chargeback ref
+                new ParseBigDecimal(), // billed Amount
+                new ParseBigDecimal(), // soc Amount
+                new ParseLong(), // socInvoice
+                new ParseLong(), // rocInvoice
+                new Optional(new ParseBigDecimal()), // Foreign Amount
+                new Optional(), //Foreign Currency
+                new NotNull(), // support to follow
+                new Optional(new Trim()),
+                new Optional(new Trim()),
+                new Optional(new Trim()),
+                new Optional(new Trim()),
+                new Optional(new Trim()),
+                new Optional(new Trim()),
+                new Optional(new Trim())
+        };
+
+        try {
+            CsvPreference redshiftPreprerence =
+                    new CsvPreference.Builder(CsvPreference.EXCEL_PREFERENCE)
+                            .surroundingSpacesNeedQuotes(true)
+                            .ignoreEmptyLines(true)
+                            .useQuoteMode(new AlwaysQuoteMode())
+                            .build();
+            beanWriter = new CsvBeanWriter(new FileWriter(csvFileName),
+                    redshiftPreprerence);
+            String[] header = {"dataFileRecordType", "serviceEstablishmentNumber", "cardMemberAccountNumber", "currentCaseNumber", "previousCaseNumber", "resolution",
+                    "adjustmentDate", "chargeDate", "caseType", "locationNumber", "chargebackReasonCode", "chargebackAmount", "chargebackAdjustmentNumber", "chargebackResolutionAdjustmentNumber", "chargebackReferenceCode", "billedAmount",
+                    "socAmount", "socInvoiceNumber", "rocInvoiceNumber", "foreignAmount", "foreignCurrency", "supportToFollow", "cardMemberName1", "cardMemberName2", "cardMemberAddress1",
+                    "cardMemberAddress2", "cardMemberCityState", "cardMemberZip", "cardMemberFirstName1", "cardMemberMiddleName1", "cardMemberLastName1", "cardMemberOriginalAccountNumber"};
+            beanWriter.writeHeader(header);
+
+            for (Detail record : records) {
+                beanWriter.write(record, header, processors);
+            }
+
+        } catch (IOException ex) {
+            System.err.println("Error writing the CSV file: " + ex);
+        } finally {
+            if (beanWriter != null) {
+                try {
+                    beanWriter.close();
+                } catch (IOException ex) {
+                    System.err.println("Error closing the writer: " + ex);
+                }
+            }
+        }
+    }
 }

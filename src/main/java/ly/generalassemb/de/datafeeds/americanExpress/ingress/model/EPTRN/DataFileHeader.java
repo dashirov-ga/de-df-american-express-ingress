@@ -148,9 +148,10 @@ public class DataFileHeader {
                     .withDataFileHeaderDateTime(headerDateTime.parse(
                             m.group("dataFileHeaderDate") +
                                     m.group("dataFileHeaderTime")))
-                    .withDataFileHeaderFileID(Long.valueOf(m.group("dataFileHeaderFileID")))
-                    .withDataFileHeaderFileName(m.group("dataFileHeaderFileName"));
+                    .withDataFileHeaderFileID(Long.valueOf(m.group("dataFileHeaderFileID").trim()))
+                    .withDataFileHeaderFileName(m.group("dataFileHeaderFileName").trim());
+        } else {
+            return null;
         }
-        return null;
     }
 }

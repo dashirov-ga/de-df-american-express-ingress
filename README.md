@@ -155,4 +155,44 @@ CREATE TABLE scratch.american_express_revenue_activity_summary_of_charge_detail
 			    );
 COMMENT ON TABLE scratch.american_express_revenue_activity_summary_of_charge_detail IS 'EPTRN SOC Detail';
 
+
+CREATE TABLE scratch.american_express_revenue_activity_chargeback_detail
+(
+     data_file_record_type VARCHAR(1) NOT NULL,
+     service_establishment_number NUMERIC NOT NULL,
+     card_member_account_number NUMERIC NOT NULL,
+     current_case_number VARCHAR(11),
+     previous_case_number VARCHAR(11) ,
+     resolution VARCHAR(1) NOT NULL,
+     adjustment_date DATE NOT NULL,
+     charge_date DATE NOT NULL,
+     case_type VARCHAR(6) NOT NULL,
+     location_number VARCHAR(15),
+     chargeback_reason_code VARCHAR(3) NOT NULL,
+     chargeback_amount DECIMAL NOT NULL,
+     chargeback_adjustment_number VARCHAR(6),
+     chargeback_resolution_adjustment_number VARCHAR(6),
+     chargeback_reference_code VARCHAR(12), -- this is core tx id
+     billed_amount DECIMAL,
+     soc_amount DECIMAL,
+     soc_invoice_number VARCHAR(6),
+     roc_invoice_number VARCHAR(6),
+     foreign_amount DECIMAL,
+     foreign_currency VARCHAR(3),
+     support_to_follow VARCHAR(1),
+     card_member_name_1 VARCHAR(30),
+     card_member_name_2 VARCHAR(30),
+     card_member_address_1 VARCHAR(30),
+     card_member_address_2 VARCHAR(30),
+     card_member_city_state VARCHAR(30),
+     card_member_zip VARCHAR(9),
+     card_member_first_name_1 VARCHAR(12),
+     card_member_middle_name_1 VARCHAR(12),
+     card_member_last_name_1 VARCHAR(20),
+     card_member_original_account_number VARCHAR(15)
+);
+
+COMMENT ON TABLE scratch.american_express_revenue_activity_chargeback_detail IS 'CBNOT Detail';
+
+
 ```

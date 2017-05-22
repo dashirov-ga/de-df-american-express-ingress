@@ -134,8 +134,9 @@ public class DataFileHeader {
                     .withDataType(m.group("dataType"))
                     .withServiceAccessId(m.group("serviceAccessId"))
                     .withOriginalFileTransmissionDateTime(headerDateTime.parse(m.group("originalFileTransmissionDate") + m.group("originalFileTransmissionTime")));
+        } else {
+            return null;
         }
-        return null;
     }
 
     @Override

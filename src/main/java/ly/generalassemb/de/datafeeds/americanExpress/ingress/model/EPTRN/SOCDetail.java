@@ -635,8 +635,9 @@ public class SOCDetail {
                     .withTrackingId(Long.valueOf(m.group("trackingId")))
                     .withCpcIndicator(m.group("cpcIndicator").equals("P"))
                     .withAmexROCCountPOA(AmountParser.toLong(m.group("amexROCCountPOAPrefix"), m.group("amexROCCountPOASuffix")));
+        } else {
+            return null;
         }
-        return null;
     }
     public static void writeCSVFile(String csvFileName, List<SOCDetail> records) {
         ICsvBeanWriter beanWriter = null;
