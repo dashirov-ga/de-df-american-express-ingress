@@ -17,7 +17,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <smokeMainClass>ly.generalassemb.de.datafeeds.AmericanExpress.ingress.FeedHandler</smokeMainClass>
-        <jackson.version>2.7.0</jackson.version>
+        <jackson.version>2.8.0</jackson.version>
     </properties>
 
 
@@ -337,6 +337,12 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.zalando</groupId>
+            <artifactId>jackson-datatype-money</artifactId>
+            <version>0.12.0</version>
+        </dependency>
+
         <!-- Configuration to use log4j for logging -->
         <dependency>
             <groupId>log4j</groupId>
@@ -409,11 +415,10 @@
             <version>2.4.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/javax.money/money-api -->
         <dependency>
-            <groupId>javax.money</groupId>
-            <artifactId>money-api</artifactId>
-            <version>1.0.1</version>
+            <groupId>org.javamoney</groupId>
+            <artifactId>moneta</artifactId>
+            <version>1.1</version>
         </dependency>
 
     </dependencies>

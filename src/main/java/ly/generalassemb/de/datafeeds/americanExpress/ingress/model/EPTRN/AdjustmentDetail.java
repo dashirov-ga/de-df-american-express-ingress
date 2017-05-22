@@ -537,8 +537,9 @@ public class AdjustmentDetail {
                     .withServiceFeeRate(Long.valueOf(m.group("serviceFeeRate")))
                     .withCardMemberNumber(m.group("cardmemberNumber").trim())
                     .withAdjustmentReason(m.group("adjustmentReason").trim());
+        } else {
+            return null;
         }
-        return null;
     }
 
     public static void writeCSVFile(String csvFileName, List<AdjustmentDetail> records) {

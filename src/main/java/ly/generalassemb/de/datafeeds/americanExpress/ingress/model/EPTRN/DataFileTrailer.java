@@ -232,8 +232,9 @@ public class DataFileTrailer  {
                     .withDataFileTrailerFileName(m.group("dataFileTrailerFileName"))
                     .withDataFileTrailerRecipientKey(m.group("dataFileTrailerRecipientKey"))
                     .withDataFileTrailerRecordCount(Long.valueOf(m.group("dataFileTrailerRecordCount")));
+        } else {
+            return null;
         }
-        return null;
     }
 
 

@@ -291,8 +291,9 @@ public class Summary {
                     .withDebitBalanceAmount(AmountParser.toLong(m.group("debitBalanceAmountPrefix"), m.group("debitBalanceAmountSuffix")))
                     .withAbaBankNumber(Long.valueOf(m.group("abaBankNumber")))
                     .withPayeeDirectDepositAccountNumber(m.group("payeeDirectDepositAccountNumber").replace(" ", ""));
+        } else {
+            return null;
         }
-        return null;
     }
 
     public static void writeCSVFile(String csvFileName, List<Summary> summaries) {

@@ -81,7 +81,7 @@ public class TestParser {
     @Test
     public void testExample()  {
         ClassLoader classLoader = getClass().getClassLoader();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(getFile("GeneralAssemblyEPTRNsample5-9-17.txt")));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getFile("EPTRN.dat")));
         try {
 
             SimpleDateFormat postgresTsWithTz = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
