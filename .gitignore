@@ -58,4 +58,4 @@ buildNumber.properties
 !/.mvn/wrapper/maven-wrapper.jar
 
 .idea/*
-de-paypal-braintree-ingress.iml
+/df-american-express-ingress.iml
