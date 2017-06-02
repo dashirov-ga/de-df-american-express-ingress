@@ -221,8 +221,7 @@ public class FeedHandler {
 
         try {
             LOGGER.debug("Private Key:{}", private_key);
-
-            ssh.setKnownHosts("/Users/dashirov/Source/GA/de-df-american-express-ingress/src/test/resources/known_hosts");
+            ssh.setKnownHosts(configuration.get().getString("source.amex.sftp.known_hosts"));
             ssh.addIdentity(user, private_key.getBytes("US-ASCII"), public_key.getBytes("US-ASCII"), null);
             Session session = ssh.getSession(user, host, port);
             LOGGER.debug("{} SSH session created for {} to host {} on port {}.", runId, user, host, port);
