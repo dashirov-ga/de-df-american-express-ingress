@@ -4,6 +4,7 @@ import com.google.common.io.ByteStreams;
 import com.jcraft.jsch.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmountParser;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public class TestParser {
 
     }
 
+    @Ignore("Uses data files we don't want to keep in git")
     @Test
     public void secureFileTransfer(){
         JSch ssh = new JSch();
@@ -78,6 +80,7 @@ public class TestParser {
 
     }
 
+    @Ignore("Uses data files we don't want to keep in git")
     @Test
     public void testExample()  {
         ClassLoader classLoader = getClass().getClassLoader();
