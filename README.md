@@ -156,7 +156,7 @@ CREATE TABLE scratch.american_express_revenue_activity_summary_of_charge_detail
 COMMENT ON TABLE scratch.american_express_revenue_activity_summary_of_charge_detail IS 'EPTRN SOC Detail';
 
 
-CREATE TABLE scratch.american_express_revenue_activity_chargeback_detail
+CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_chargeback_detail
 (
      data_file_record_type VARCHAR(1) NOT NULL,
      service_establishment_number NUMERIC NOT NULL,
