@@ -1,5 +1,5 @@
 
-package batch;
+package co.ga.batch;
 
 import com.fasterxml.jackson.annotation.*;
 import com.snowplowanalytics.snowplow.tracker.Subject;
@@ -21,43 +21,41 @@ import java.util.UUID;
 
 /**
  * Schema for an Google AdWords Ingress Data Feed job starting
- *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "run_id",
         "name",
-        "account",
         "state",
         "started_at",
         "ended_at"
 })
-public class StepStatus implements Serializable
-{
+public class StepStatus implements Serializable {
 
-    protected static String iglu = "iglu:co.ga.monitoring.batch/step_status/jsonschema/1-0-0";
-    public static final String version = "1.0.0";
-    public SelfDescribingJson getSelfDescribingJson(){
+    protected static String iglu = "iglu:co.ga.batch/step_status/jsonschema/2-0-1";
+    public static final String version = "2.0.1";
+
+    public SelfDescribingJson getSelfDescribingJson() {
         SelfDescribingJson selfDescribingJson = new SelfDescribingJson(iglu);
-        Map<String,Object> data = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
         //REQUIRED
-        data.put("name",name);
-        data.put("state",state);
+        data.put("name", name);
+        data.put("state", state);
         // OPTIONAL
         if (runId != null)
-          data.put("run_id", runId);
-        if (account!=null)
-           data.put("account",account);
-        if (startedAt!=null)
-           data.put("started_at",startedAt);
-        if (endedAt!=null)
-           data.put("ended_at",endedAt);
+            data.put("run_id", runId);
+
+        if (startedAt != null)
+            data.put("started_at", startedAt);
+
+        if (endedAt != null)
+            data.put("ended_at", endedAt);
         selfDescribingJson.setData(data);
         return selfDescribingJson;
     }
 
-    public Event getEvent(Subject subject){
-        if ( subject != null)
+    public Event getEvent(Subject subject) {
+        if (subject != null)
             return Unstructured.builder()
                     .eventId(UUID.randomUUID().toString())
                     .timestamp(new Date().getTime())
@@ -76,20 +74,15 @@ public class StepStatus implements Serializable
     @Size(max = 32)
     private String runId;
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("name")
     @Size(max = 255)
     @NotNull
     private String name;
-    @JsonProperty("account")
-    private Long account;
+
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     @NotNull
@@ -98,29 +91,25 @@ public class StepStatus implements Serializable
     private Date startedAt;
     @JsonProperty("ended_at")
     private Date endedAt;
-    private final static long serialVersionUID = -510014190490845328L;
+    private final static long serialVersionUID = -510014190490845329L;
 
     /**
      * No args constructor for use in serialization
-     *
      */
     public StepStatus() {
     }
 
     /**
-     *
      * @param endedAt
      * @param name
      * @param startedAt
      * @param state
-     * @param account
      * @param runId
      */
-    public StepStatus(String runId, String name, Long account, StepStatus.State state, Date startedAt, Date endedAt) {
+    public StepStatus(String runId, String name, StepStatus.State state, Date startedAt, Date endedAt) {
         super();
         this.runId = runId;
         this.name = name;
-        this.account = account;
         this.state = state;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
@@ -142,9 +131,7 @@ public class StepStatus implements Serializable
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -152,9 +139,7 @@ public class StepStatus implements Serializable
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("name")
     public void setName(String name) {
@@ -166,25 +151,8 @@ public class StepStatus implements Serializable
         return this;
     }
 
-    @JsonProperty("account")
-    public Long getAccount() {
-        return account;
-    }
-
-    @JsonProperty("account")
-    public void setAccount(Long account) {
-        this.account = account;
-    }
-
-    public StepStatus withAccount(Long account) {
-        this.account = account;
-        return this;
-    }
-
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     public StepStatus.State getState() {
@@ -192,9 +160,7 @@ public class StepStatus implements Serializable
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     public void setState(StepStatus.State state) {
@@ -243,7 +209,7 @@ public class StepStatus implements Serializable
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(runId).append(name).append(account).append(state).append(startedAt).append(endedAt).toHashCode();
+        return new HashCodeBuilder().append(runId).append(name).append(state).append(startedAt).append(endedAt).toHashCode();
     }
 
     @Override
@@ -255,7 +221,7 @@ public class StepStatus implements Serializable
             return false;
         }
         StepStatus rhs = ((StepStatus) other);
-        return new EqualsBuilder().append(runId, rhs.runId).append(name, rhs.name).append(account, rhs.account).append(state, rhs.state).append(startedAt, rhs.startedAt).append(endedAt, rhs.endedAt).isEquals();
+        return new EqualsBuilder().append(runId, rhs.runId).append(name, rhs.name).append(state, rhs.state).append(startedAt, rhs.startedAt).append(endedAt, rhs.endedAt).isEquals();
     }
 
     public enum State {
@@ -269,7 +235,7 @@ public class StepStatus implements Serializable
         private final static Map<String, State> CONSTANTS = new HashMap<String, State>();
 
         static {
-            for (StepStatus.State c: values()) {
+            for (StepStatus.State c : values()) {
                 CONSTANTS.put(c.value, c);
             }
         }

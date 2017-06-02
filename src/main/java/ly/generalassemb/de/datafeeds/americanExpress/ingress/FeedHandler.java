@@ -1,6 +1,9 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress;
 
-import batch.JobStarting;
+import co.ga.batch.JobFailed;
+import co.ga.batch.JobStarting;
+import co.ga.batch.JobSucceeded;
+import co.ga.batch.StepStatus;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -179,6 +182,7 @@ public class FeedHandler {
             Read command line arguments and load initial configuration
          */
         init(args);
+        Map<String, Date> runTimers = new HashMap<>();
         Event startEvent = new JobStarting().withRunId(runId.toString()).getEvent(null);
         tracker.track(startEvent);
         LOGGER.debug("{} Starting.", runId);
@@ -207,8 +211,8 @@ public class FeedHandler {
          */
 
 
+        JSch.setLogger(new SFTPLogger());
         JSch ssh = new JSch();
-        ssh.setLogger(new SFTPLogger());
         String user = configuration.get().getString("source.amex.sftp.user");
         String host = configuration.get().getString("source.amex.sftp.host");
         int port = configuration.get().getInt("source.amex.sftp.port");
@@ -218,8 +222,14 @@ public class FeedHandler {
         String fileNamePattern = configuration.get().getString("source.amex.sftp.filenamepattern");
         Pattern FilenamePattern = Pattern.compile(fileNamePattern);
 
+        Date stepStart;
 
+        // SECURE FILE TRANSFER STEP
+        stepStart = new Date();
+        runTimers.putIfAbsent("sft", stepStart);
+        final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
         try {
+            tracker.track(new StepStatus().withName("sft").withState(StepStatus.State.PENDING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
             LOGGER.debug("Private Key:{}", private_key);
             ssh.setKnownHosts(configuration.get().getString("source.amex.sftp.known_hosts"));
             ssh.addIdentity(user, private_key.getBytes("US-ASCII"), public_key.getBytes("US-ASCII"), null);
@@ -228,38 +238,27 @@ public class FeedHandler {
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "yes");
             session.setConfig(config);
-
             session.connect();
             LOGGER.debug("{} SSH session connected to host {} on {} as user {}", runId, session.getHost(), session.getPort(), session.getUserName());
-
             Channel channel = session.openChannel("sftp");
             channel.setInputStream(System.in);
             channel.setOutputStream(System.out);
             channel.connect();
             LOGGER.debug("{} SFTP shell channel connected.", runId);
-
             ChannelSftp c = (ChannelSftp) channel;
             c.cd(inDirectory);
-
             final ArrayList<String> toBeDownloaded = new ArrayList<>();
-            ChannelSftp.LsEntrySelector selector = new ChannelSftp.LsEntrySelector() {
-                @Override
-                public int select(ChannelSftp.LsEntry entry) {
-                    Matcher m = FilenamePattern.matcher(entry.getFilename());
-                    SftpATTRS attr = entry.getAttrs();
-                    if (m.find() && !attr.isDir() && !attr.isLink()) {
-                        LOGGER.debug("{} Found file {}. Will download.", runId, entry.getFilename());
-                        toBeDownloaded.add(entry.getFilename());
-                    }
-                    return CONTINUE;
+            ChannelSftp.LsEntrySelector selector = entry -> {
+                Matcher m = FilenamePattern.matcher(entry.getFilename());
+                SftpATTRS attr = entry.getAttrs();
+                if (m.find() && !attr.isDir() && !attr.isLink()) {
+                    LOGGER.debug("{} Found file {}. Will download.", runId, entry.getFilename());
+                    toBeDownloaded.add(entry.getFilename());
                 }
+                return ChannelSftp.LsEntrySelector.CONTINUE;
             };
-            try {
-                c.ls(inDirectory, selector);
-            } catch (SftpException e) {
-                LOGGER.error("{} Error listing directory {}", runId, inDirectory, e);
-            }
-            final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
+            c.ls(inDirectory, selector);
+            tracker.track(new StepStatus().withName("sft").withState(StepStatus.State.RUNNING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
             for (String fileName : toBeDownloaded) {
                 LOGGER.debug("prototyping {}", fileName);
                 Matcher m = FilenamePattern.matcher(fileName);
@@ -278,10 +277,31 @@ public class FeedHandler {
                     filesDownloaded.add(entry);
                 } else
                     LOGGER.error("Whoa! second time around, no match!");
-
-
             }
-            Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+
+            try {
+                c.exit();
+            } catch (Exception e) {
+                LOGGER.warn("Could not close ssh/sftp communication channels cleanly. Will not fail the job, but this was the error:", e);
+            }
+
+            tracker.track(new StepStatus().withName("sft").withState(StepStatus.State.COMPLETED).withRunId(runId.toString()).withStartedAt(stepStart).withEndedAt(new Date()).getEvent(null));
+        } catch (SftpException | JSchException | IOException e) {
+            tracker.track(new StepStatus().withName("sft").withState(StepStatus.State.FAILED).withRunId(runId.toString()).withStartedAt(runTimers.get("sft")).getEvent(null));
+            LOGGER.error("Step sft failed.", e);
+
+            tracker.track(new JobFailed(runId.toString()).getEvent(null));
+            LOGGER.error("Job failed.");
+            System.exit(1);
+        }
+
+
+        // FILE PARSING STEP: All files are here, on a local file system. No SSH/SFTP communications.
+        stepStart = new Date();
+        runTimers.putIfAbsent("file-parse", stepStart);
+        Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+        try {
+            tracker.track(new StepStatus().withName("file-parse").withState(StepStatus.State.RUNNING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
             for (Map<String, Object> input : filesDownloaded) {
                 File inputFile = (File) input.get("file");
                 String type = (String) input.get("type");
@@ -289,7 +309,6 @@ public class FeedHandler {
                 String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
                 String line;
                 LOGGER.debug("Pricessing {}", uniqueFileId);
-
                 if (type.equals("EPTRN")) {
                     DataFileHeader header = null;
                     List<Summary> summaries = new ArrayList<>();
@@ -297,7 +316,6 @@ public class FeedHandler {
                     List<ROCDetail> rocDetails = new ArrayList<>();
                     List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
                     DataFileTrailer trailer = null;
-
                     while ((line = reader.readLine()) != null) {
                         LOGGER.debug("LINE:{}", line);
                         Object record;
@@ -326,7 +344,7 @@ public class FeedHandler {
                     }
                     // Every line in the file downloaded has been parsed, you have json and csv data available now
 
-
+                    tracker.track(new StepStatus().withName("s3-upload").withState(StepStatus.State.RUNNING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
                     LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
                     if (summaries.size() > 0) {
                         File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
@@ -375,6 +393,7 @@ public class FeedHandler {
                     }
 
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
+                    tracker.track(new StepStatus().withName("s3-upload").withState(StepStatus.State.COMPLETED).withRunId(runId.toString()).withStartedAt(stepStart).withEndedAt(new Date()).getEvent(null));
                 } else if (type.equals("CBNOT")) {
                     ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader cbHeader = null;
                     List<ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail> cbDetails = new ArrayList<>();
@@ -394,6 +413,7 @@ public class FeedHandler {
                             cbDetails.add((Detail) record);
                         }
                     }
+                    tracker.track(new StepStatus().withName("s3-upload").withState(StepStatus.State.RUNNING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
                     if (cbDetails.size() > 0) {
                         File chargebackDetailsFile = File.createTempFile("chargebackdetails-" + runId + "-", ".csv");
                         if (!skipProcessingStepsSet.contains("clean-local"))
@@ -405,13 +425,26 @@ public class FeedHandler {
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
                     }
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.CBNOT, uniqueFileId));
+                    tracker.track(new StepStatus().withName("s3-upload").withState(StepStatus.State.COMPLETED).withRunId(runId.toString()).withStartedAt(stepStart).withEndedAt(new Date()).getEvent(null));
                 }
             }
-            c.exit();
+        } catch (IOException | java.text.ParseException e) {
+            // had trouble reading input or creating temp files for the output. Abort the job.
+            tracker.track(new StepStatus().withName("file-parse").withState(StepStatus.State.FAILED).withRunId(runId.toString()).withStartedAt(runTimers.get("file-parse")).getEvent(null));
+            LOGGER.error("Step file-parse failed.", e);
 
+            tracker.track(new JobFailed(runId.toString()).getEvent(null));
+            LOGGER.error("Job failed.");
+            System.exit(1);
+        }
+        stepStart = new Date();
+        runTimers.putIfAbsent("dw-upload", stepStart);
+        try {
             if (!redshiftLoadable.isEmpty()) {
                 // All files have been seen, parsed, split into record types and loaded to s3
                 // Time to make them show up in the redshift data warehouse and or postgresql database
+                stepStart = new Date();
+                tracker.track(new StepStatus().withName("dw-upload").withState(StepStatus.State.RUNNING).withRunId(runId.toString()).withStartedAt(stepStart).getEvent(null));
                 for (S3Prefix type : redshiftLoadable.keySet()) {
                     if (redshiftLoadable.get(type).size() > 0) {
                         RedshiftManifest manifest = new RedshiftManifest();
@@ -423,20 +456,19 @@ public class FeedHandler {
                     }
                 }
             }
-
+            tracker.track(new StepStatus().withName("dw-upload").withState(StepStatus.State.COMPLETED).withRunId(runId.toString()).withStartedAt(stepStart).withEndedAt(new Date()).getEvent(null));
             LOGGER.debug("{} Done.", runId);
+        } catch (SQLException e) {
+            tracker.track(new StepStatus().withName("dw-upload").withState(StepStatus.State.FAILED).withRunId(runId.toString()).withStartedAt(runTimers.get("dw-upload")).withEndedAt(new Date()).getEvent(null));
+            LOGGER.error("Step dw-upload failed.", e);
 
-
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (java.text.ParseException e) {
-            e.printStackTrace();
+            tracker.track(new JobFailed(runId.toString()).getEvent(null));
+            LOGGER.error("Job failed.");
+            System.exit(1);
         }
+
         System.out.println("Finished all threads");
+        tracker.track(new JobSucceeded(runId.toString()).getEvent(null));
         System.exit(0);
 
     }
@@ -450,14 +482,14 @@ public class FeedHandler {
     }
 
     // This should take a manifest, not sql statement
-    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) {
+    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) throws SQLException {
         // If s3 files were uploaded
         String key = Paths.get("manifest", runId.toString(), type.name() + ".json").toString();
         String bucket = configuration.get().getString("sink.s3.bucket.name");
         AmazonS3URI manifestURI = new AmazonS3URI("s3://" + bucket + "/" + key); // validate!
 
-        try {
-            LOGGER.info("Loading {}", manifest.toString());
+
+        LOGGER.info("Loading {}", manifest.toString());
             AWSCredentialsProvider credentialsProvider;
             if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
                     configuration.get().getString("sink.s3.credentials.secretKey") == null) {
@@ -570,9 +602,6 @@ public class FeedHandler {
             c.commit();
             c.setAutoCommit(true);
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
 

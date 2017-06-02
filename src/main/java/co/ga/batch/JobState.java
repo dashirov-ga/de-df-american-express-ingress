@@ -1,4 +1,4 @@
-package batch;
+package co.ga.batch;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,22 +21,22 @@ import java.util.UUID;
 
 /**
  * Schema for an Google AdWords Ingress Data Feed job starting
- *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "run_id"
 })
-public class JobState implements Serializable
-{
+public class JobState implements Serializable {
     public enum State {
-        STARTING("iglu:co.ga.monitoring.batch/job_starting/jsonschema/1-0-0"),
-        FAILED("iglu:co.ga.monitoring.batch/job_failed/jsonschema/1-0-0"),
-        SUCCEEDED("iglu:co.ga.monitoring.batch/job_succeeded/jsonschema/1-0-0");
+        STARTING("iglu:co.ga.batch/job_starting/jsonschema/2-0-1"),
+        FAILED("iglu:co.ga.batch/job_failed/jsonschema/2-0-1"),
+        SUCCEEDED("iglu:co.ga.batch/job_succeeded/jsonschema/2-0-1");
         private final String state;
+
         private State(final String state) {
             this.state = state;
         }
+
         @Override
         public String toString() {
             return state;
@@ -51,22 +51,23 @@ public class JobState implements Serializable
 
     protected static String iglu;
     public static final String version = "1.0.0";
-    public SelfDescribingJson getSelfDescribingJson(){
+
+    public SelfDescribingJson getSelfDescribingJson() {
         SelfDescribingJson selfDescribingJson = new SelfDescribingJson(iglu);
-        Map<String,Object> data = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
         data.put("run_id", runId);
         selfDescribingJson.setData(data);
         return selfDescribingJson;
     }
 
-    public Event getEvent(Subject subject){
-        if ( subject != null)
+    public Event getEvent(Subject subject) {
+        if (subject != null)
             return Unstructured.builder()
-                .eventId(UUID.randomUUID().toString())
-                .timestamp(new Date().getTime())
-                .subject(subject)
-                .eventData(getSelfDescribingJson())
-                .build();
+                    .eventId(UUID.randomUUID().toString())
+                    .timestamp(new Date().getTime())
+                    .subject(subject)
+                    .eventData(getSelfDescribingJson())
+                    .build();
         else
             return Unstructured.builder()
                     .eventId(UUID.randomUUID().toString())
@@ -78,19 +79,18 @@ public class JobState implements Serializable
     public static void setIglu(String iglu) {
         JobState.iglu = iglu;
     }
+
     public static void setState(State state) {
         JobState.iglu = state.name();
     }
 
     /**
      * No args constructor for use in serialization
-     *
      */
     public JobState() {
     }
 
     /**
-     *
      * @param runId
      */
     public JobState(String runId) {
