@@ -1,125 +1,142 @@
-
 package co.ga.batch;
 
+import java.io.Serializable;
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.*;
-import com.snowplowanalytics.snowplow.tracker.Subject;
-import com.snowplowanalytics.snowplow.tracker.events.Event;
-import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.snowplowanalytics.snowplow.tracker.payload.SelfDescribingJson;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 
 /**
- * Schema for an Google AdWords Ingress Data Feed job starting
+ * Schema for an Batch Job Step Status Event
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "run_id",
         "name",
+        "context",
         "state",
         "started_at",
         "ended_at"
 })
 public class StepStatus implements Serializable {
-
-    protected static String iglu = "iglu:co.ga.batch/step_status/jsonschema/2-0-1";
-    public static final String version = "2.0.1";
+    private static final String iglu = "iglu:co.ga.batch/step_status/jsonschema/2-0-1";
 
     public SelfDescribingJson getSelfDescribingJson() {
-        SelfDescribingJson selfDescribingJson = new SelfDescribingJson(iglu);
-        Map<String, Object> data = new HashMap<>();
-        //REQUIRED
-        data.put("name", name);
-        data.put("state", state);
-        // OPTIONAL
-        if (runId != null)
-            data.put("run_id", runId);
+        //  Even though you should be able to, you get
+        // return new SelfDescribingJson(iglu, this );
+        StepStatus o = this;
+        Map<String, String> out = new HashMap<>();
+        Field[] fields = this.getClass().getDeclaredFields();
+        AccessibleObject.setAccessible(fields, true);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 
-        if (startedAt != null)
-            data.put("started_at", startedAt);
-
-        if (endedAt != null)
-            data.put("ended_at", endedAt);
-        selfDescribingJson.setData(data);
-        return selfDescribingJson;
+        Arrays.stream(fields)
+                .forEach(f -> {
+                    try {
+                        if ((f.getAnnotation(JsonProperty.class) != null) && (f.get(o) != null)) {
+                            String key = f.getAnnotation(JsonProperty.class).value();
+                            // Why do I have to strip double quotes? why not avoid writing them there in the first place?
+                            String val = mapper.writeValueAsString(f.get(o)).replaceAll("(?:^\"|\"$)", "");
+                            out.put(key, val);
+                        }
+                    } catch (JsonProcessingException | IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+        return new SelfDescribingJson(iglu, out);
     }
 
-    public Event getEvent(Subject subject) {
-        if (subject != null)
-            return Unstructured.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .timestamp(new Date().getTime())
-                    .subject(subject)
-                    .eventData(getSelfDescribingJson())
-                    .build();
-        else
-            return Unstructured.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .timestamp(new Date().getTime())
-                    .eventData(getSelfDescribingJson())
-                    .build();
-    }
-
-    @JsonProperty("run_id")
-    @Size(max = 32)
-    private String runId;
     /**
+     * The UUID identifying the particular job run, which will be used to tie events together later.
      * (Required)
      */
+    @JsonProperty("run_id")
+    @JsonPropertyDescription("The UUID identifying the particular job run, which will be used to tie events together later.")
+    @Size(max = 36)
+    @NotNull
+    private String runId;
+    /**
+     * Name of the step of the job run.
+     * (Required)
+     *
+     */
     @JsonProperty("name")
+    @JsonPropertyDescription("Name of the step of the job run.")
     @Size(max = 255)
     @NotNull
     private String name;
-
     /**
+     * Additional context for the step (e.g. Google AdWords Account ID).
+     *
+     */
+    @JsonProperty("context")
+    @JsonPropertyDescription("Additional context for the step (e.g. Google AdWords Account ID).")
+    @Size(max = 255)
+    private String context;
+    /**
+     * State of the step of the job run.
      * (Required)
+     *
      */
     @JsonProperty("state")
+    @JsonPropertyDescription("State of the step of the job run.")
     @NotNull
     private StepStatus.State state;
+    /**
+     * When did this step in the job run start (e.g. '2017-06-01T13:54:59Z')?
+     *
+     */
     @JsonProperty("started_at")
+    @JsonPropertyDescription("When did this step in the job run start (e.g. '2017-06-01T13:54:59Z')?")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT")
     private Date startedAt;
+    /**
+     * When did this step in the job run end (e.g. '2017-06-01T13:55:05.114Z')?
+     *
+     */
     @JsonProperty("ended_at")
+    @JsonPropertyDescription("When did this step in the job run end (e.g. '2017-06-01T13:55:05.114Z')?")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT")
     private Date endedAt;
-    private final static long serialVersionUID = -510014190490845329L;
+    private final static long serialVersionUID = -8826362676335194585L;
 
     /**
      * No args constructor for use in serialization
+     *
      */
     public StepStatus() {
+
     }
 
     /**
-     * @param endedAt
-     * @param name
-     * @param startedAt
-     * @param state
-     * @param runId
+     * The UUID identifying the particular job run, which will be used to tie events together later.
+     * (Required)
+     *
      */
-    public StepStatus(String runId, String name, StepStatus.State state, Date startedAt, Date endedAt) {
-        super();
-        this.runId = runId;
-        this.name = name;
-        this.state = state;
-        this.startedAt = startedAt;
-        this.endedAt = endedAt;
-    }
-
     @JsonProperty("run_id")
     public String getRunId() {
         return runId;
     }
 
+    /**
+     * The UUID identifying the particular job run, which will be used to tie events together later.
+     * (Required)
+     *
+     */
     @JsonProperty("run_id")
     public void setRunId(String runId) {
         this.runId = runId;
@@ -131,7 +148,9 @@ public class StepStatus implements Serializable {
     }
 
     /**
+     * Name of the step of the job run.
      * (Required)
+     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -139,7 +158,9 @@ public class StepStatus implements Serializable {
     }
 
     /**
+     * Name of the step of the job run.
      * (Required)
+     *
      */
     @JsonProperty("name")
     public void setName(String name) {
@@ -152,7 +173,31 @@ public class StepStatus implements Serializable {
     }
 
     /**
+     * Additional context for the step (e.g. Google AdWords Account ID).
+     *
+     */
+    @JsonProperty("context")
+    public String getContext() {
+        return context;
+    }
+
+    /**
+     * Additional context for the step (e.g. Google AdWords Account ID).
+     */
+    @JsonProperty("context")
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public StepStatus withContext(String context) {
+        this.context = context;
+        return this;
+    }
+
+    /**
+     * State of the step of the job run.
      * (Required)
+     *
      */
     @JsonProperty("state")
     public StepStatus.State getState() {
@@ -160,7 +205,9 @@ public class StepStatus implements Serializable {
     }
 
     /**
+     * State of the step of the job run.
      * (Required)
+     *
      */
     @JsonProperty("state")
     public void setState(StepStatus.State state) {
@@ -172,11 +219,19 @@ public class StepStatus implements Serializable {
         return this;
     }
 
+    /**
+     * When did this step in the job run start (e.g. '2017-06-01T13:54:59Z')?
+     *
+     */
     @JsonProperty("started_at")
     public Date getStartedAt() {
         return startedAt;
     }
 
+    /**
+     * When did this step in the job run start (e.g. '2017-06-01T13:54:59Z')?
+     *
+     */
     @JsonProperty("started_at")
     public void setStartedAt(Date startedAt) {
         this.startedAt = startedAt;
@@ -187,11 +242,19 @@ public class StepStatus implements Serializable {
         return this;
     }
 
+    /**
+     * When did this step in the job run end (e.g. '2017-06-01T13:55:05.114Z')?
+     *
+     */
     @JsonProperty("ended_at")
     public Date getEndedAt() {
         return endedAt;
     }
 
+    /**
+     * When did this step in the job run end (e.g. '2017-06-01T13:55:05.114Z')?
+     *
+     */
     @JsonProperty("ended_at")
     public void setEndedAt(Date endedAt) {
         this.endedAt = endedAt;
@@ -209,7 +272,7 @@ public class StepStatus implements Serializable {
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(runId).append(name).append(state).append(startedAt).append(endedAt).toHashCode();
+        return new HashCodeBuilder().append(runId).append(name).append(context).append(state).append(startedAt).append(endedAt).toHashCode();
     }
 
     @Override
@@ -217,11 +280,11 @@ public class StepStatus implements Serializable {
         if (other == this) {
             return true;
         }
-        if ((other instanceof StepStatus) == false) {
+        if (!(other instanceof StepStatus)) {
             return false;
         }
         StepStatus rhs = ((StepStatus) other);
-        return new EqualsBuilder().append(runId, rhs.runId).append(name, rhs.name).append(state, rhs.state).append(startedAt, rhs.startedAt).append(endedAt, rhs.endedAt).isEquals();
+        return new EqualsBuilder().append(runId, rhs.runId).append(name, rhs.name).append(context, rhs.context).append(state, rhs.state).append(startedAt, rhs.startedAt).append(endedAt, rhs.endedAt).isEquals();
     }
 
     public enum State {
@@ -232,7 +295,7 @@ public class StepStatus implements Serializable {
         CANCELLED("CANCELLED"),
         FAILED("FAILED");
         private final String value;
-        private final static Map<String, State> CONSTANTS = new HashMap<String, State>();
+        private final static Map<String, StepStatus.State> CONSTANTS = new HashMap<String, StepStatus.State>();
 
         static {
             for (StepStatus.State c : values()) {
@@ -267,3 +330,4 @@ public class StepStatus implements Serializable {
     }
 
 }
+

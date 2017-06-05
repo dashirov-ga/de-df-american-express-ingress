@@ -1,108 +1,75 @@
 package co.ga.batch;
 
+import java.io.Serializable;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.snowplowanalytics.snowplow.tracker.Subject;
-import com.snowplowanalytics.snowplow.tracker.events.Event;
-import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
-import com.snowplowanalytics.snowplow.tracker.payload.SelfDescribingJson;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import javax.validation.constraints.Size;
-import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 
 /**
- * Schema for an Google AdWords Ingress Data Feed job starting
+ * Schema for a Batch Job Failed Event
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "run_id"
 })
-public class JobState implements Serializable {
+public class JobState extends JsonSelfDescribingContext implements Serializable {
     public enum State {
         STARTING("iglu:co.ga.batch/job_starting/jsonschema/2-0-1"),
         FAILED("iglu:co.ga.batch/job_failed/jsonschema/2-0-1"),
         SUCCEEDED("iglu:co.ga.batch/job_succeeded/jsonschema/2-0-1");
         private final String state;
-
         private State(final String state) {
             this.state = state;
         }
-
         @Override
         public String toString() {
             return state;
         }
     }
 
+
+    /**
+     * The UUID identifying the particular job run, which will be used to tie events together later.
+     * (Required)
+     */
     @JsonProperty("run_id")
-    @Size(max = 32)
+    @JsonPropertyDescription("The UUID identifying the particular job run, which will be used to tie events together later.")
+    @Size(max = 36)
+    @NotNull
     private String runId;
-    private final static long serialVersionUID = 3366603880232992815L;
-
-
-    protected static String iglu;
-    public static final String version = "1.0.0";
-
-    public SelfDescribingJson getSelfDescribingJson() {
-        SelfDescribingJson selfDescribingJson = new SelfDescribingJson(iglu);
-        Map<String, Object> data = new HashMap<>();
-        data.put("run_id", runId);
-        selfDescribingJson.setData(data);
-        return selfDescribingJson;
-    }
-
-    public Event getEvent(Subject subject) {
-        if (subject != null)
-            return Unstructured.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .timestamp(new Date().getTime())
-                    .subject(subject)
-                    .eventData(getSelfDescribingJson())
-                    .build();
-        else
-            return Unstructured.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .timestamp(new Date().getTime())
-                    .eventData(getSelfDescribingJson())
-                    .build();
-    }
-
-    public static void setIglu(String iglu) {
-        JobState.iglu = iglu;
-    }
-
-    public static void setState(State state) {
-        JobState.iglu = state.name();
-    }
+    private final static long serialVersionUID = 5396097983235411492L;
 
     /**
      * No args constructor for use in serialization
+     *
      */
-    public JobState() {
+    public JobState(String iglu) {
+        super(iglu);
     }
 
     /**
-     * @param runId
+     * The UUID identifying the particular job run, which will be used to tie events together later.
+     * (Required)
+     *
      */
-    public JobState(String runId) {
-        super();
-        this.runId = runId;
-    }
-
     @JsonProperty("run_id")
     public String getRunId() {
         return runId;
     }
 
+    /**
+     * The UUID identifying the particular job run, which will be used to tie events together later.
+     * (Required)
+     *
+     */
     @JsonProperty("run_id")
     public void setRunId(String runId) {
         this.runId = runId;
@@ -128,7 +95,7 @@ public class JobState implements Serializable {
         if (other == this) {
             return true;
         }
-        if (!(other instanceof JobState)) {
+        if ((other instanceof JobState) == false) {
             return false;
         }
         JobState rhs = ((JobState) other);
@@ -136,3 +103,4 @@ public class JobState implements Serializable {
     }
 
 }
+
