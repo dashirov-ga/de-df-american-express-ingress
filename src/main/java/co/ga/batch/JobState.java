@@ -33,6 +33,7 @@ public class JobState extends JsonSelfDescribingContext implements Serializable 
         public String toString() {
             return state;
         }
+        public String iglu() {return  state;}
     }
 
 

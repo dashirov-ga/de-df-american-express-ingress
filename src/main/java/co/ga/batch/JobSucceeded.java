@@ -5,12 +5,12 @@ package co.ga.batch;
  */
 public class JobSucceeded extends JobState {
     public JobSucceeded() {
-        super(State.SUCCEEDED.toString());
+        super(State.SUCCEEDED.iglu());
 
     }
 
     public JobSucceeded(String runId) {
-        super(State.SUCCEEDED.toString());
+        super(State.SUCCEEDED.iglu());
         this.setRunId(runId);
     }
 }

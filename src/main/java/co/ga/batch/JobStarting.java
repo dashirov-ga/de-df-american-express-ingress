@@ -5,12 +5,12 @@ package co.ga.batch;
  */
 public class JobStarting extends JobState {
     public JobStarting() {
-        super(State.STARTING.name());
+        super(State.STARTING.iglu());
 
     }
 
     public JobStarting(String runId) {
-        super(State.STARTING.name());
+        super(State.STARTING.iglu());
         this.setRunId(runId);
         return;
     }

@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by davidashirov on 3/24/17.
@@ -26,13 +24,24 @@ public class JsonSelfDescribingContext {
         this.iglu = iglu;
     }
 
+    public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
+        fields.addAll(Arrays.asList((Field[])type.getDeclaredFields()));
+        if (type.getSuperclass() != null) {
+            getAllFields(fields, type.getSuperclass());
+        }
+        return fields;
+    }
+
     public SelfDescribingJson getSelfDescribingJson() {
+        LOGGER.info("Extracting json annotated fields in {}", this.getClass());
         ObjectMapper mapper = new ObjectMapper();
         ObjectWriter dateWriter = mapper.writer(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
         Map<String, String> out = new HashMap<>();
-        LOGGER.debug("Generating SDJ Map {}", this.getClass().getDeclaredFields().length);
-        Field[] fields = this.getClass().getDeclaredFields();
-        AccessibleObject.setAccessible(fields, true);
+
+        List<Field> fields = new ArrayList<Field>();
+        getAllFields(fields,this.getClass());
+
+        AccessibleObject.setAccessible(fields.toArray(new Field[fields.size()]), true);
         for (Field f : fields) {
             LOGGER.debug("Examining field {}", f);
             JsonProperty property = f.getAnnotation(JsonProperty.class);

@@ -99,9 +99,13 @@ public class TestMonitoring {
 
     @Test
     public void testJobStarting() {
-        for (int i = 0; i < 100; i++) {
+        String runId=new UUID(0L, 0L).toString().replace("-", "");
 
-            Event t;
+        Event t ;
+        t = Unstructured.builder().eventData(new JobStarting(runId).getSelfDescribingJson()).build();
+        tracker.track(t);
+        eventCounter.incrementAndGet();
+        for (int i = 0; i < 1; i++) {
             t = Unstructured.builder()
                     .eventData(
                             new StepStatus()
@@ -109,7 +113,7 @@ public class TestMonitoring {
                                     .withState(StepStatus.State.RUNNING)
                                     .withContext("Account #12345")
                                     .withStartedAt(new Date())
-                                    .withRunId(new UUID(0L, 0L).toString().replace("-", "")
+                                    .withRunId(runId
                                     ).getSelfDescribingJson()
                     )//  .customContext(
                     // Takes a list of custom contexts
