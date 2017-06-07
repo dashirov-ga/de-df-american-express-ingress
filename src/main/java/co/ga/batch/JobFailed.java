@@ -5,12 +5,12 @@ package co.ga.batch;
  */
 public class JobFailed extends JobState {
     public JobFailed() {
-        super();
-        setIglu(State.FAILED.name());
+        super(State.FAILED.iglu());
+
     }
 
     public JobFailed(String runId) {
-        super(runId);
-        setIglu(State.FAILED.name());
+        super(State.FAILED.iglu());
+        this.setRunId(runId);
     }
 }

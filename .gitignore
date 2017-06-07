@@ -59,3 +59,5 @@ buildNumber.properties
 
 .idea/*
 /df-american-express-ingress.iml
+.idea/
+src/main/resources/df-american-express-ingress.properties
