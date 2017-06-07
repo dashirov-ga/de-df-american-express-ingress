@@ -210,6 +210,8 @@ public class FeedHandler {
     }
 
     private static void terminate(int status) {
+        // TODO: This is done better with :
+        //  Runtime.getRuntime().addShutdownHook(Thread)
         tracker.getEmitter().flushBuffer();
         while (eventCounter.get() > 0) {
             LOGGER.warn("Waiting for events to be delivered or error out...");
