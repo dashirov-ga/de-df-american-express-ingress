@@ -83,12 +83,10 @@ public class TestMonitoring {
         // nothing to carefully deconstruct prior to exit
         LOGGER.info("Buffer is empty: {} ({})", tracker.getEmitter().getBuffer().isEmpty(), tracker.getEmitter().getBuffer().size());
         this.tracker.getEmitter().flushBuffer();
-
-
         while (eventCounter.get() > 0) {
             LOGGER.warn("Waiting for events to be delivered or error out...");
             try {
-                Thread.sleep(300);
+                Thread.sleep(350);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

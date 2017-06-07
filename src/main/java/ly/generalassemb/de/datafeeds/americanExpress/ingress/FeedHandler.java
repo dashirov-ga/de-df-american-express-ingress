@@ -17,9 +17,12 @@ import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
 import com.snowplowanalytics.snowplow.tracker.emitter.BatchEmitter;
+
+import com.snowplowanalytics.snowplow.tracker.emitter.RequestCallback;
 import com.snowplowanalytics.snowplow.tracker.events.Event;
 import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
+import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
@@ -44,6 +47,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +55,8 @@ import java.util.regex.Pattern;
  * Created by dashirov on 5/10/17.
  */
 public class FeedHandler {
+    private static final AtomicInteger eventCounter = new AtomicInteger(0);
+
     private enum S3Prefix {
         EPTRN("EPTRN", "EPTRN", ".dat"),
         EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
@@ -134,13 +140,29 @@ public class FeedHandler {
             // Snowplow Tracker
             setTracker(
                     new Tracker.TrackerBuilder(BatchEmitter.builder()
+                            .requestCallback(
+                                    new RequestCallback() {
+                                        @Override
+                                        public void onSuccess(int i) {
+                                            int events_left = eventCounter.addAndGet(-1 * i);
+                                            LOGGER.info("Snowplow: OK {} NOK 0; left to process {}", i, events_left);
+                                        }
+
+                                        @Override
+                                        public void onFailure(int i, List<TrackerPayload> list) {
+                                            int events_left = eventCounter.addAndGet(-1 * (i + list.size()));
+                                            LOGGER.info("Snowplow: OK {} NOK {}; left to process {}", i, list.size(), events_left);
+                                            LOGGER.error(list.toString());
+                                        }
+                                    }
+                            )
                             .httpClientAdapter(OkHttpClientAdapter.builder()
                                     .url(configuration.get().getString("monitoring.snowplow.url"))
                                     .httpClient(new OkHttpClient())
                                     .build())
                             .build(), configuration.get().getString("monitoring.snowplow.namespace"),
                             configuration.get().getString("monitoring.snowplow.application"))
-                            .base64(true)
+                            .base64(false)
                             .platform(DevicePlatform.ServerSideApp)
                             .build()
             );
@@ -180,13 +202,36 @@ public class FeedHandler {
 
     }
 
+    private static void track(Event event) {
+        if (tracker != null) {
+            tracker.track(event);
+            eventCounter.getAndIncrement();
+        }
+    }
+
+    private static void terminate(int status) {
+        tracker.getEmitter().flushBuffer();
+        while (eventCounter.get() > 0) {
+            LOGGER.warn("Waiting for events to be delivered or error out...");
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        LOGGER.info("Shutdown completed");
+        System.exit(status);
+    }
+
     public static void main(String[] args) throws InterruptedException, MalformedURLException, ParseException {
         /*
             Read command line arguments and load initial configuration
          */
         init(args);
         Map<String, Date> runTimers = new HashMap<>();
-        tracker.track(Unstructured.builder().eventData(new JobStarting().withRunId(runId).getSelfDescribingJson()).build());
+        track(Unstructured.builder().eventData(
+                new JobStarting().withRunId(runId).getSelfDescribingJson()
+        ).build());
         LOGGER.debug("{} Starting.", runId);
 
         /*
@@ -231,7 +276,7 @@ public class FeedHandler {
         runTimers.putIfAbsent("sft", stepStart);
         final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
         try {
-            tracker.track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.PENDING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.PENDING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
 
             LOGGER.debug("Private Key:{}", private_key);
             ssh.setKnownHosts(configuration.get().getString("source.amex.sftp.known_hosts"));
@@ -261,7 +306,7 @@ public class FeedHandler {
                 return ChannelSftp.LsEntrySelector.CONTINUE;
             };
             c.ls(inDirectory, selector);
-            tracker.track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.RUNNING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.RUNNING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
             for (String fileName : toBeDownloaded) {
                 LOGGER.debug("prototyping {}", fileName);
                 Matcher m = FilenamePattern.matcher(fileName);
@@ -288,13 +333,13 @@ public class FeedHandler {
                 LOGGER.warn("Could not close ssh/sftp communication channels cleanly. Will not fail the job, but this was the error:", e);
             }
 
-            tracker.track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.COMPLETED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.COMPLETED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
         } catch (SftpException | JSchException | IOException e) {
-            tracker.track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.FAILED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.FAILED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
             LOGGER.error("Step sft failed.", e);
-            tracker.track(Unstructured.builder().eventData(new JobFailed().withRunId(runId).getSelfDescribingJson()).build());
+            track(Unstructured.builder().eventData(new JobFailed().withRunId(runId).getSelfDescribingJson()).build());
             LOGGER.error("Job failed.");
-            System.exit(1);
+            terminate(1);
         }
 
 
@@ -303,7 +348,7 @@ public class FeedHandler {
         runTimers.putIfAbsent("file-parse", stepStart);
         Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
         try {
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new StepStatus()
                                     .withRunId(runId)
@@ -355,7 +400,7 @@ public class FeedHandler {
                     }
                     // Every line in the file downloaded has been parsed, you have json and csv data available now
 
-                    tracker.track(
+                    track(
                             Unstructured.builder().eventData(
                                     new StepStatus()
                                             .withRunId(runId)
@@ -414,7 +459,7 @@ public class FeedHandler {
                     }
 
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
-                    tracker.track(
+                    track(
                             Unstructured.builder().eventData(
                                     new StepStatus()
                                             .withRunId(runId)
@@ -445,7 +490,7 @@ public class FeedHandler {
                             cbDetails.add((Detail) record);
                         }
                     }
-                    tracker.track(
+                    track(
                             Unstructured.builder().eventData(
                                     new StepStatus()
                                             .withRunId(runId)
@@ -467,7 +512,7 @@ public class FeedHandler {
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
                     }
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.CBNOT, uniqueFileId));
-                    tracker.track(
+                    track(
                             Unstructured.builder().eventData(
                                     new StepStatus()
                                             .withRunId(runId)
@@ -483,7 +528,7 @@ public class FeedHandler {
             }
         } catch (IOException | java.text.ParseException e) {
             // had trouble reading input or creating temp files for the output. Abort the job.
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new StepStatus()
                                     .withRunId(runId)
@@ -497,7 +542,7 @@ public class FeedHandler {
 
             LOGGER.error("Step file-parse failed.", e);
 
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new JobFailed()
                                     .withRunId(runId)
@@ -506,7 +551,7 @@ public class FeedHandler {
             );
 
             LOGGER.error("Job failed.");
-            System.exit(1);
+            terminate(1);
         }
         stepStart = new Date();
         runTimers.putIfAbsent("dw-upload", stepStart);
@@ -515,7 +560,7 @@ public class FeedHandler {
                 // All files have been seen, parsed, split into record types and loaded to s3
                 // Time to make them show up in the redshift data warehouse and or postgresql database
                 stepStart = new Date();
-                tracker.track(
+                track(
                         Unstructured.builder().eventData(
                                 new StepStatus()
                                         .withRunId(runId)
@@ -537,7 +582,7 @@ public class FeedHandler {
                     }
                 }
             }
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new StepStatus()
                                     .withRunId(runId)
@@ -551,7 +596,7 @@ public class FeedHandler {
 
             LOGGER.debug("{} Done.", runId);
         } catch (SQLException e) {
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new StepStatus()
                                     .withRunId(runId)
@@ -564,7 +609,7 @@ public class FeedHandler {
             );
 
             LOGGER.error("Step dw-upload failed.", e);
-            tracker.track(
+            track(
                     Unstructured.builder().eventData(
                             new JobFailed()
                                     .withRunId(runId)
@@ -573,18 +618,18 @@ public class FeedHandler {
             );
 
             LOGGER.error("Job failed.");
-            System.exit(1);
+            terminate(1);
         }
 
         System.out.println("Finished all threads");
-        tracker.track(
+        track(
                 Unstructured.builder().eventData(
                         new JobSucceeded()
                                 .withRunId(runId)
                                 .getSelfDescribingJson()
                 ).build()
         );
-        System.exit(0);
+        terminate(0);
 
     }
 
