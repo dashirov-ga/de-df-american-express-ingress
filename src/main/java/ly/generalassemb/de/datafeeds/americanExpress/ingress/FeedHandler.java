@@ -1,6 +1,9 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress;
 
-import batch.JobStarting;
+import co.ga.batch.JobFailed;
+import co.ga.batch.JobStarting;
+import co.ga.batch.JobSucceeded;
+import co.ga.batch.StepStatus;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -14,8 +17,12 @@ import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
 import com.snowplowanalytics.snowplow.tracker.emitter.BatchEmitter;
+
+import com.snowplowanalytics.snowplow.tracker.emitter.RequestCallback;
 import com.snowplowanalytics.snowplow.tracker.events.Event;
+import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
+import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
@@ -23,11 +30,13 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFil
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileTrailer;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RunID;
 import org.apache.commons.cli.*;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -38,6 +47,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +55,8 @@ import java.util.regex.Pattern;
  * Created by dashirov on 5/10/17.
  */
 public class FeedHandler {
+    private static final AtomicInteger eventCounter = new AtomicInteger(0);
+
     private enum S3Prefix {
         EPTRN("EPTRN", "EPTRN", ".dat"),
         EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
@@ -76,7 +88,7 @@ public class FeedHandler {
 
     private static Tracker tracker;
     private static Config configuration;
-    private static final UUID runId = UUID.randomUUID();
+    private static final String runId = RunID.unique();
 
     public static Tracker getTracker() {
         return tracker;
@@ -128,13 +140,29 @@ public class FeedHandler {
             // Snowplow Tracker
             setTracker(
                     new Tracker.TrackerBuilder(BatchEmitter.builder()
+                            .requestCallback(
+                                    new RequestCallback() {
+                                        @Override
+                                        public void onSuccess(int i) {
+                                            int events_left = eventCounter.addAndGet(-1 * i);
+                                            LOGGER.info("Snowplow: OK {} NOK 0; left to process {}", i, events_left);
+                                        }
+
+                                        @Override
+                                        public void onFailure(int i, List<TrackerPayload> list) {
+                                            int events_left = eventCounter.addAndGet(-1 * (i + list.size()));
+                                            LOGGER.info("Snowplow: OK {} NOK {}; left to process {}", i, list.size(), events_left);
+                                            LOGGER.error(list.toString());
+                                        }
+                                    }
+                            )
                             .httpClientAdapter(OkHttpClientAdapter.builder()
                                     .url(configuration.get().getString("monitoring.snowplow.url"))
                                     .httpClient(new OkHttpClient())
                                     .build())
                             .build(), configuration.get().getString("monitoring.snowplow.namespace"),
                             configuration.get().getString("monitoring.snowplow.application"))
-                            .base64(true)
+                            .base64(false)
                             .platform(DevicePlatform.ServerSideApp)
                             .build()
             );
@@ -174,13 +202,38 @@ public class FeedHandler {
 
     }
 
+    private static void track(Event event) {
+        if (tracker != null) {
+            tracker.track(event);
+            eventCounter.getAndIncrement();
+        }
+    }
+
+    private static void terminate(int status) {
+        // TODO: This is done better with :
+        //  Runtime.getRuntime().addShutdownHook(Thread)
+        tracker.getEmitter().flushBuffer();
+        while (eventCounter.get() > 0) {
+            LOGGER.warn("Waiting for events to be delivered or error out...");
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        LOGGER.info("Shutdown completed");
+        System.exit(status);
+    }
+
     public static void main(String[] args) throws InterruptedException, MalformedURLException, ParseException {
         /*
             Read command line arguments and load initial configuration
          */
         init(args);
-        Event startEvent = new JobStarting().withRunId(runId.toString()).getEvent(null);
-        tracker.track(startEvent);
+        Map<String, Date> runTimers = new HashMap<>();
+        track(Unstructured.builder().eventData(
+                new JobStarting().withRunId(runId).getSelfDescribingJson()
+        ).build());
         LOGGER.debug("{} Starting.", runId);
 
         /*
@@ -207,8 +260,8 @@ public class FeedHandler {
          */
 
 
+        JSch.setLogger(new SFTPLogger());
         JSch ssh = new JSch();
-        ssh.setLogger(new SFTPLogger());
         String user = configuration.get().getString("source.amex.sftp.user");
         String host = configuration.get().getString("source.amex.sftp.host");
         int port = configuration.get().getInt("source.amex.sftp.port");
@@ -218,8 +271,15 @@ public class FeedHandler {
         String fileNamePattern = configuration.get().getString("source.amex.sftp.filenamepattern");
         Pattern FilenamePattern = Pattern.compile(fileNamePattern);
 
+        Date stepStart;
 
+        // SECURE FILE TRANSFER STEP
+        stepStart = new Date();
+        runTimers.putIfAbsent("sft", stepStart);
+        final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
         try {
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.PENDING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
+
             LOGGER.debug("Private Key:{}", private_key);
             ssh.setKnownHosts(configuration.get().getString("source.amex.sftp.known_hosts"));
             ssh.addIdentity(user, private_key.getBytes("US-ASCII"), public_key.getBytes("US-ASCII"), null);
@@ -228,38 +288,27 @@ public class FeedHandler {
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "yes");
             session.setConfig(config);
-
             session.connect();
             LOGGER.debug("{} SSH session connected to host {} on {} as user {}", runId, session.getHost(), session.getPort(), session.getUserName());
-
             Channel channel = session.openChannel("sftp");
             channel.setInputStream(System.in);
             channel.setOutputStream(System.out);
             channel.connect();
             LOGGER.debug("{} SFTP shell channel connected.", runId);
-
             ChannelSftp c = (ChannelSftp) channel;
             c.cd(inDirectory);
-
             final ArrayList<String> toBeDownloaded = new ArrayList<>();
-            ChannelSftp.LsEntrySelector selector = new ChannelSftp.LsEntrySelector() {
-                @Override
-                public int select(ChannelSftp.LsEntry entry) {
-                    Matcher m = FilenamePattern.matcher(entry.getFilename());
-                    SftpATTRS attr = entry.getAttrs();
-                    if (m.find() && !attr.isDir() && !attr.isLink()) {
-                        LOGGER.debug("{} Found file {}. Will download.", runId, entry.getFilename());
-                        toBeDownloaded.add(entry.getFilename());
-                    }
-                    return CONTINUE;
+            ChannelSftp.LsEntrySelector selector = entry -> {
+                Matcher m = FilenamePattern.matcher(entry.getFilename());
+                SftpATTRS attr = entry.getAttrs();
+                if (m.find() && !attr.isDir() && !attr.isLink()) {
+                    LOGGER.debug("{} Found file {}. Will download.", runId, entry.getFilename());
+                    toBeDownloaded.add(entry.getFilename());
                 }
+                return ChannelSftp.LsEntrySelector.CONTINUE;
             };
-            try {
-                c.ls(inDirectory, selector);
-            } catch (SftpException e) {
-                LOGGER.error("{} Error listing directory {}", runId, inDirectory, e);
-            }
-            final ArrayList<Map<String, Object>> filesDownloaded = new ArrayList<>();
+            c.ls(inDirectory, selector);
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.RUNNING).withRunId(runId).withStartedAt(stepStart).getSelfDescribingJson()).build());
             for (String fileName : toBeDownloaded) {
                 LOGGER.debug("prototyping {}", fileName);
                 Matcher m = FilenamePattern.matcher(fileName);
@@ -278,10 +327,39 @@ public class FeedHandler {
                     filesDownloaded.add(entry);
                 } else
                     LOGGER.error("Whoa! second time around, no match!");
-
-
             }
-            Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+
+            try {
+                c.exit();
+            } catch (Exception e) {
+                LOGGER.warn("Could not close ssh/sftp communication channels cleanly. Will not fail the job, but this was the error:", e);
+            }
+
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.COMPLETED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
+        } catch (SftpException | JSchException | IOException e) {
+            track(Unstructured.builder().eventData(new StepStatus().withName("sft").withState(StepStatus.State.FAILED).withRunId(runId).withStartedAt(stepStart).withEndedAt(new Date()).getSelfDescribingJson()).build());
+            LOGGER.error("Step sft failed.", e);
+            track(Unstructured.builder().eventData(new JobFailed().withRunId(runId).getSelfDescribingJson()).build());
+            LOGGER.error("Job failed.");
+            terminate(1);
+        }
+
+
+        // FILE PARSING STEP: All files are here, on a local file system. No SSH/SFTP communications.
+        stepStart = new Date();
+        runTimers.putIfAbsent("file-parse", stepStart);
+        Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+        try {
+            track(
+                    Unstructured.builder().eventData(
+                            new StepStatus()
+                                    .withRunId(runId)
+                                    .withName("file-parse")
+                                    .withState(StepStatus.State.RUNNING)
+                                    .withStartedAt(stepStart)
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
             for (Map<String, Object> input : filesDownloaded) {
                 File inputFile = (File) input.get("file");
                 String type = (String) input.get("type");
@@ -289,7 +367,6 @@ public class FeedHandler {
                 String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
                 String line;
                 LOGGER.debug("Pricessing {}", uniqueFileId);
-
                 if (type.equals("EPTRN")) {
                     DataFileHeader header = null;
                     List<Summary> summaries = new ArrayList<>();
@@ -297,7 +374,6 @@ public class FeedHandler {
                     List<ROCDetail> rocDetails = new ArrayList<>();
                     List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
                     DataFileTrailer trailer = null;
-
                     while ((line = reader.readLine()) != null) {
                         LOGGER.debug("LINE:{}", line);
                         Object record;
@@ -326,6 +402,16 @@ public class FeedHandler {
                     }
                     // Every line in the file downloaded has been parsed, you have json and csv data available now
 
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.RUNNING)
+                                            .withStartedAt(stepStart)
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
 
                     LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
                     if (summaries.size() > 0) {
@@ -375,6 +461,18 @@ public class FeedHandler {
                     }
 
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.COMPLETED)
+                                            .withStartedAt(stepStart)
+                                            .withEndedAt(new Date())
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
+
                 } else if (type.equals("CBNOT")) {
                     ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader cbHeader = null;
                     List<ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail> cbDetails = new ArrayList<>();
@@ -394,6 +492,17 @@ public class FeedHandler {
                             cbDetails.add((Detail) record);
                         }
                     }
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.RUNNING)
+                                            .withStartedAt(stepStart)
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
+
                     if (cbDetails.size() > 0) {
                         File chargebackDetailsFile = File.createTempFile("chargebackdetails-" + runId + "-", ".csv");
                         if (!skipProcessingStepsSet.contains("clean-local"))
@@ -405,13 +514,65 @@ public class FeedHandler {
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
                     }
                     uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.CBNOT, uniqueFileId));
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.COMPLETED)
+                                            .withStartedAt(stepStart)
+                                            .withEndedAt(new Date())
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
+
                 }
             }
-            c.exit();
+        } catch (IOException | java.text.ParseException e) {
+            // had trouble reading input or creating temp files for the output. Abort the job.
+            track(
+                    Unstructured.builder().eventData(
+                            new StepStatus()
+                                    .withRunId(runId)
+                                    .withName("file-parse")
+                                    .withState(StepStatus.State.FAILED)
+                                    .withStartedAt(stepStart)
+                                    .withEndedAt(new Date())
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
 
+            LOGGER.error("Step file-parse failed.", e);
+
+            track(
+                    Unstructured.builder().eventData(
+                            new JobFailed()
+                                    .withRunId(runId)
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
+
+            LOGGER.error("Job failed.");
+            terminate(1);
+        }
+        stepStart = new Date();
+        runTimers.putIfAbsent("dw-upload", stepStart);
+        try {
             if (!redshiftLoadable.isEmpty()) {
                 // All files have been seen, parsed, split into record types and loaded to s3
                 // Time to make them show up in the redshift data warehouse and or postgresql database
+                stepStart = new Date();
+                track(
+                        Unstructured.builder().eventData(
+                                new StepStatus()
+                                        .withRunId(runId)
+                                        .withName("dw-upload")
+                                        .withState(StepStatus.State.RUNNING)
+                                        .withStartedAt(stepStart)
+                                        .getSelfDescribingJson()
+                        ).build()
+                );
+
                 for (S3Prefix type : redshiftLoadable.keySet()) {
                     if (redshiftLoadable.get(type).size() > 0) {
                         RedshiftManifest manifest = new RedshiftManifest();
@@ -423,21 +584,54 @@ public class FeedHandler {
                     }
                 }
             }
+            track(
+                    Unstructured.builder().eventData(
+                            new StepStatus()
+                                    .withRunId(runId)
+                                    .withName("dw-upload")
+                                    .withState(StepStatus.State.COMPLETED)
+                                    .withStartedAt(stepStart)
+                                    .withEndedAt(new Date())
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
 
             LOGGER.debug("{} Done.", runId);
+        } catch (SQLException e) {
+            track(
+                    Unstructured.builder().eventData(
+                            new StepStatus()
+                                    .withRunId(runId)
+                                    .withName("dw-upload")
+                                    .withState(StepStatus.State.FAILED)
+                                    .withStartedAt(stepStart)
+                                    .withEndedAt(new Date())
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
 
+            LOGGER.error("Step dw-upload failed.", e);
+            track(
+                    Unstructured.builder().eventData(
+                            new JobFailed()
+                                    .withRunId(runId)
+                                    .getSelfDescribingJson()
+                    ).build()
+            );
 
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (java.text.ParseException e) {
-            e.printStackTrace();
+            LOGGER.error("Job failed.");
+            terminate(1);
         }
+
         System.out.println("Finished all threads");
-        System.exit(0);
+        track(
+                Unstructured.builder().eventData(
+                        new JobSucceeded()
+                                .withRunId(runId)
+                                .getSelfDescribingJson()
+                ).build()
+        );
+        terminate(0);
 
     }
 
@@ -450,129 +644,126 @@ public class FeedHandler {
     }
 
     // This should take a manifest, not sql statement
-    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) {
+    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) throws SQLException {
         // If s3 files were uploaded
-        String key = Paths.get("manifest", runId.toString(), type.name() + ".json").toString();
+        String key = Paths.get("manifest", runId, type.name() + ".json").toString();
         String bucket = configuration.get().getString("sink.s3.bucket.name");
         AmazonS3URI manifestURI = new AmazonS3URI("s3://" + bucket + "/" + key); // validate!
 
-        try {
-            LOGGER.info("Loading {}", manifest.toString());
-            AWSCredentialsProvider credentialsProvider;
-            if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
-                    configuration.get().getString("sink.s3.credentials.secretKey") == null) {
-                credentialsProvider = new DefaultAWSCredentialsProviderChain();
-            } else {
-                credentialsProvider = new AWSStaticCredentialsProvider(
-                        new BasicAWSCredentials(
-                                configuration.get().getString("sink.s3.credentials.accessKey"),
-                                configuration.get().getString("sink.s3.credentials.secretKey")
-                        )
-                );
-            }
-            AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                    .withRegion(Regions.US_EAST_1)
-                    .withCredentials(credentialsProvider)
-                    .withAccelerateModeEnabled(false)
-                    .build();
 
-            ObjectMetadata manifestMetadata = new ObjectMetadata();
-            manifestMetadata.setContentType("application/json");
-            manifestMetadata.setContentEncoding("UTF-8");
-
-            PutObjectRequest req = new PutObjectRequest(
-                    configuration.get().getString("sink.s3.bucket.name"),
-                    key,
-                    new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
-                    manifestMetadata
+        LOGGER.info("Loading {}", manifest.toString());
+        AWSCredentialsProvider credentialsProvider;
+        if (configuration.get().getString("sink.s3.credentials.accessKey") == null ||
+                configuration.get().getString("sink.s3.credentials.secretKey") == null) {
+            credentialsProvider = new DefaultAWSCredentialsProviderChain();
+        } else {
+            credentialsProvider = new AWSStaticCredentialsProvider(
+                    new BasicAWSCredentials(
+                            configuration.get().getString("sink.s3.credentials.accessKey"),
+                            configuration.get().getString("sink.s3.credentials.secretKey")
+                    )
             );
-            s3.putObject(req);
-
-            Connection c = DriverManager.getConnection(
-                    configuration.get().getString("sink.redshift.jdbc.url"),
-                    configuration.get().getString("sink.redshift.jdbc.usr"),
-                    configuration.get().getString("sink.redshift.jdbc.pwd")
-            );
-            c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
-
-            PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
-            session_setup.execute();
-
-            // THERE ARE DUPLICATE RECORDS IN TRANSACTioN SEARCH REPORTS THAT SPAWN DIFFERENT TIME FRAMES
-            // BASED ON OBSERVED SAMPLES THE RECORDS APPEAR IDENTICAL. INSTEAD OF A STRAIGHT LOAD, TRY LOADING
-            // INTO TEMPORARY TABLE, DELETE CONFLICTING RECORDS FROM PRODUCTION, THEN RE-INSERT. DO ALL IN TRANSACTION.
-            c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-            c.setAutoCommit(false);
-
-            String targetTable = null;
-            String deleteKey = null;
-            switch (type) {
-                case EPTRN_SUMMARY:
-                    targetTable = "american_express_revenue_activity_summary";
-                    deleteKey = "payment_number";
-                    break;
-                case EPTRN_ROC_DETAIL:
-                    targetTable = "american_express_revenue_activity_record_of_charge_detail";
-                    deleteKey = "payment_number";
-                    break;
-                case EPTRN_SOC_DETAIL:
-                    targetTable = "american_express_revenue_activity_summary_of_charge_detail";
-                    deleteKey = "payment_number";
-                    break;
-                case EPTRN_ADJUSTMENT_DETAIL:
-                    targetTable = "american_express_revenue_activity_adjustment_detail";
-                    deleteKey = "payment_number";
-                    break;
-                case CBNOT_DETAIL:
-                    targetTable = "american_express_revenue_activity_chargeback_detail";
-                    deleteKey = "chargeback_adjustment_number";
-                default:
-                    break;
-            }
-            String creteTemp = "CREATE TEMPORARY TABLE temp_" + targetTable + "( LIKE " + targetTable + "  );";
-            LOGGER.info(creteTemp);
-            PreparedStatement s = c.prepareStatement(creteTemp);
-            s.execute();
-
-            /**
-             copy customer
-             from 's3://mybucket/cust.manifest'
-             iam_role 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
-             manifest;
-
-             */
-            String copyCommand =
-                    "COPY  temp_" + targetTable +
-                            " FROM '" + manifestURI.getURI() + "'\n " +
-                            " CREDENTIALS '" + configuration.get().getString("sink.redshift.jdbc.credentials") + "' " +
-                            " MANIFEST CSV IGNOREHEADER 1;";
-
-            LOGGER.info(copyCommand);
-            s = c.prepareStatement(copyCommand);
-            s.execute();
-
-            String deleteOld = "DELETE FROM " + targetTable +
-                    " WHERE EXISTS ( SELECT 1 FROM temp_" + targetTable +
-                    " WHERE temp_" + targetTable + "." + deleteKey + " = " + targetTable + "." + deleteKey + ");";
-            LOGGER.info(deleteOld);
-            s = c.prepareStatement(deleteOld);
-            s.execute();
-
-            String insertNew = "INSERT INTO " + targetTable +
-                    " select t.* " +
-                    " from temp_" + targetTable + " t" +
-                    " left outer join  " + targetTable + " p using (" + deleteKey + ")" +
-                    " where p." + deleteKey + " is null";
-            LOGGER.info(insertNew);
-            s = c.prepareStatement(insertNew);
-            s.execute();
-
-            c.commit();
-            c.setAutoCommit(true);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
+                .withRegion(Regions.US_EAST_1)
+                .withCredentials(credentialsProvider)
+                .withAccelerateModeEnabled(false)
+                .build();
+
+        ObjectMetadata manifestMetadata = new ObjectMetadata();
+        manifestMetadata.setContentType("application/json");
+        manifestMetadata.setContentEncoding("UTF-8");
+
+        PutObjectRequest req = new PutObjectRequest(
+                configuration.get().getString("sink.s3.bucket.name"),
+                key,
+                new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
+                manifestMetadata
+        );
+        s3.putObject(req);
+
+        Connection c = DriverManager.getConnection(
+                configuration.get().getString("sink.redshift.jdbc.url"),
+                configuration.get().getString("sink.redshift.jdbc.usr"),
+                configuration.get().getString("sink.redshift.jdbc.pwd")
+        );
+        c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
+
+        PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
+        session_setup.execute();
+
+        // THERE ARE DUPLICATE RECORDS IN TRANSACTioN SEARCH REPORTS THAT SPAWN DIFFERENT TIME FRAMES
+        // BASED ON OBSERVED SAMPLES THE RECORDS APPEAR IDENTICAL. INSTEAD OF A STRAIGHT LOAD, TRY LOADING
+        // INTO TEMPORARY TABLE, DELETE CONFLICTING RECORDS FROM PRODUCTION, THEN RE-INSERT. DO ALL IN TRANSACTION.
+        c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        c.setAutoCommit(false);
+
+        String targetTable = null;
+        String deleteKey = null;
+        switch (type) {
+            case EPTRN_SUMMARY:
+                targetTable = "american_express_revenue_activity_summary";
+                deleteKey = "payment_number";
+                break;
+            case EPTRN_ROC_DETAIL:
+                targetTable = "american_express_revenue_activity_record_of_charge_detail";
+                deleteKey = "payment_number";
+                break;
+            case EPTRN_SOC_DETAIL:
+                targetTable = "american_express_revenue_activity_summary_of_charge_detail";
+                deleteKey = "payment_number";
+                break;
+            case EPTRN_ADJUSTMENT_DETAIL:
+                targetTable = "american_express_revenue_activity_adjustment_detail";
+                deleteKey = "payment_number";
+                break;
+            case CBNOT_DETAIL:
+                targetTable = "american_express_revenue_activity_chargeback_detail";
+                deleteKey = "chargeback_adjustment_number";
+            default:
+                break;
+        }
+        String creteTemp = "CREATE TEMPORARY TABLE temp_" + targetTable + "( LIKE " + targetTable + "  );";
+        LOGGER.info(creteTemp);
+        PreparedStatement s = c.prepareStatement(creteTemp);
+        s.execute();
+
+        /**
+         copy customer
+         from 's3://mybucket/cust.manifest'
+         iam_role 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
+         manifest;
+
+         */
+        String copyCommand =
+                "COPY  temp_" + targetTable +
+                        " FROM '" + manifestURI.getURI() + "'\n " +
+                        " CREDENTIALS '" + configuration.get().getString("sink.redshift.jdbc.credentials") + "' " +
+                        " MANIFEST CSV IGNOREHEADER 1;";
+
+        LOGGER.info(copyCommand);
+        s = c.prepareStatement(copyCommand);
+        s.execute();
+
+        String deleteOld = "DELETE FROM " + targetTable +
+                " WHERE EXISTS ( SELECT 1 FROM temp_" + targetTable +
+                " WHERE temp_" + targetTable + "." + deleteKey + " = " + targetTable + "." + deleteKey + ");";
+        LOGGER.info(deleteOld);
+        s = c.prepareStatement(deleteOld);
+        s.execute();
+
+        String insertNew = "INSERT INTO " + targetTable +
+                " select t.* " +
+                " from temp_" + targetTable + " t" +
+                " left outer join  " + targetTable + " p using (" + deleteKey + ")" +
+                " where p." + deleteKey + " is null";
+        LOGGER.info(insertNew);
+        s = c.prepareStatement(insertNew);
+        s.execute();
+
+        c.commit();
+        c.setAutoCommit(true);
+
     }
 
 
@@ -617,7 +808,7 @@ public class FeedHandler {
         tags.add(new Tag("Format", format));
         if (format.equals("CSV"))
             tags.add(new Tag("CSV:Header", "TRUE"));
-        tags.add(new Tag("RunId", runId.toString()));
+        tags.add(new Tag("RunId", runId));
 
         File f = new File(file);
         LOGGER.info("Uploading to s3: {} bytes {}", f.length(), file);
