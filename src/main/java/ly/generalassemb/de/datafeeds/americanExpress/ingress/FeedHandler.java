@@ -12,26 +12,27 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.Tag;
 import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
 import com.snowplowanalytics.snowplow.tracker.emitter.BatchEmitter;
-
 import com.snowplowanalytics.snowplow.tracker.emitter.RequestCallback;
 import com.snowplowanalytics.snowplow.tracker.events.Event;
 import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
 import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.*;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileHeader;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileTrailer;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RunID;
 import org.apache.commons.cli.*;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
@@ -670,14 +671,18 @@ public class FeedHandler {
                 .withAccelerateModeEnabled(false)
                 .build();
 
+
+        byte[] manifestContent = manifest.toString().getBytes(StandardCharsets.UTF_8);
         ObjectMetadata manifestMetadata = new ObjectMetadata();
         manifestMetadata.setContentType("application/json");
         manifestMetadata.setContentEncoding("UTF-8");
+        manifestMetadata.setContentLength(manifestContent.length);
+        manifestMetadata.setContentMD5(new String(com.amazonaws.util.Base64.encode(DigestUtils.md5(manifestContent))));
 
         PutObjectRequest req = new PutObjectRequest(
                 configuration.get().getString("sink.s3.bucket.name"),
                 key,
-                new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
+                new ByteArrayInputStream(manifestContent),
                 manifestMetadata
         );
         s3.putObject(req);
