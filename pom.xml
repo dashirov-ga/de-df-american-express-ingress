@@ -4,7 +4,7 @@
 
     <groupId>ly.generalassemb.de.datafeeds</groupId>
     <artifactId>df-american-express-ingress</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
 
     <name>American Express Ingress Data Feed</name>
