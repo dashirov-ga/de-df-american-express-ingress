@@ -29,10 +29,6 @@ public class JobState extends JsonSelfDescribingContext implements Serializable 
         private State(final String state) {
             this.state = state;
         }
-        @Override
-        public String toString() {
-            return state;
-        }
         public String iglu() {return  state;}
     }
 
@@ -96,7 +92,7 @@ public class JobState extends JsonSelfDescribingContext implements Serializable 
         if (other == this) {
             return true;
         }
-        if ((other instanceof JobState) == false) {
+        if (!(other instanceof JobState)) {
             return false;
         }
         JobState rhs = ((JobState) other);

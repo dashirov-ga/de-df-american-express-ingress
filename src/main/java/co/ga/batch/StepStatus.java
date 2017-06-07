@@ -31,34 +31,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
         "started_at",
         "ended_at"
 })
-public class StepStatus implements Serializable {
-    private static final String iglu = "iglu:co.ga.batch/step_status/jsonschema/2-0-1";
-
-    public SelfDescribingJson getSelfDescribingJson() {
-        //  Even though you should be able to, you get
-        // return new SelfDescribingJson(iglu, this );
-        StepStatus o = this;
-        Map<String, String> out = new HashMap<>();
-        Field[] fields = this.getClass().getDeclaredFields();
-        AccessibleObject.setAccessible(fields, true);
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-
-        Arrays.stream(fields)
-                .forEach(f -> {
-                    try {
-                        if ((f.getAnnotation(JsonProperty.class) != null) && (f.get(o) != null)) {
-                            String key = f.getAnnotation(JsonProperty.class).value();
-                            // Why do I have to strip double quotes? why not avoid writing them there in the first place?
-                            String val = mapper.writeValueAsString(f.get(o)).replaceAll("(?:^\"|\"$)", "");
-                            out.put(key, val);
-                        }
-                    } catch (JsonProcessingException | IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-        return new SelfDescribingJson(iglu, out);
-    }
+public class StepStatus extends JsonSelfDescribingContext  implements Serializable , Cloneable {
+    private static final String    iglu = "iglu:co.ga.batch/step_status/jsonschema/2-0-1";
 
     /**
      * The UUID identifying the particular job run, which will be used to tie events together later.
@@ -119,7 +93,7 @@ public class StepStatus implements Serializable {
      *
      */
     public StepStatus() {
-
+        super(iglu);
     }
 
     /**
