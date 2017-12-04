@@ -20,7 +20,7 @@ public final class AdjustmentRecordBuilder {
     private Integer ServiceFeeRate;
     private BigDecimal SettlementTaxAmount;
     private Integer SettlementTaxRate;
-    private Integer CardMemberAccountNumber;
+    private BigDecimal CardMemberAccountNumber;
     private String AdjustmentRecordMessageCode;
     private String AdjustmentMessageDescription;
     private String SubmissionSeBranchNumber;
@@ -100,7 +100,7 @@ public final class AdjustmentRecordBuilder {
         return this;
     }
 
-    public AdjustmentRecordBuilder withCardMemberAccountNumber(Integer CardMemberAccountNumber) {
+    public AdjustmentRecordBuilder withCardMemberAccountNumber(BigDecimal CardMemberAccountNumber) {
         this.CardMemberAccountNumber = CardMemberAccountNumber;
         return this;
     }

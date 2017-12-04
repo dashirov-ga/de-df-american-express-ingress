@@ -11,12 +11,11 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -54,8 +53,8 @@ import java.util.Date;
 })
 @Record(length = 441)
 public class AdjustmentRecord {
-    private final ObjectMapper jsonMapper = new ObjectMapper();
-    private final CsvMapper csvMapper = new CsvMapper();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final CsvMapper csvMapper = new CsvMapper();
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -123,7 +122,7 @@ public class AdjustmentRecord {
     @JsonProperty("CARD_MEMBER_ACCOUNT_NUMBER")
     @Size(max = 15)
     @javax.validation.constraints.NotNull
-    private Integer cardMemberAccountNumber;
+    private BigDecimal cardMemberAccountNumber;
 
     @JsonProperty("ADJUSTMENT_RECORD_MESSAGE_CODE")
     @Size(max = 10)
@@ -169,6 +168,7 @@ public class AdjustmentRecord {
     public void setSettlementAccountNameCode(String settlementAccountNameCode) {
         this.settlementAccountNameCode = settlementAccountNameCode;
     }
+
     @FixedFormatPattern("yyyyMMdd")
     @Field(offset=14,length=8,align=Align.RIGHT,paddingChar = '0')
     public Date getSettlementDate() {
@@ -257,11 +257,11 @@ public class AdjustmentRecord {
         this.settlementTaxRate = settlementTaxRate;
     }
     @Field(offset=191,length=15,align=Align.RIGHT,paddingChar = '0')
-    public Integer getCardMemberAccountNumber() {
+    public BigDecimal getCardMemberAccountNumber() {
         return cardMemberAccountNumber;
     }
 
-    public void setCardMemberAccountNumber(Integer cardMemberAccountNumber) {
+    public void setCardMemberAccountNumber(BigDecimal cardMemberAccountNumber) {
         this.cardMemberAccountNumber = cardMemberAccountNumber;
     }
     @Field(offset=206,length=10,align=Align.LEFT,paddingChar = ' ')
@@ -315,64 +315,6 @@ public class AdjustmentRecord {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AdjustmentRecord that = (AdjustmentRecord) o;
-
-        return new EqualsBuilder()
-                .append(settlementSeAccountNumber, that.settlementSeAccountNumber)
-                .append(settlementAccountNameCode, that.settlementAccountNameCode)
-                .append(settlementDate, that.settlementDate)
-                .append(submissionSeAccountNumber, that.submissionSeAccountNumber)
-                .append(recordCode, that.recordCode)
-                .append(recordSubCode, that.recordSubCode)
-                .append(supportingReferenceNumber, that.supportingReferenceNumber)
-                .append(settlementGrossAmount, that.settlementGrossAmount)
-                .append(settlementDiscountAmount, that.settlementDiscountAmount)
-                .append(settlementNetAmount, that.settlementNetAmount)
-                .append(serviceFeeRate, that.serviceFeeRate)
-                .append(settlementTaxAmount, that.settlementTaxAmount)
-                .append(settlementTaxRate, that.settlementTaxRate)
-                .append(cardMemberAccountNumber, that.cardMemberAccountNumber)
-                .append(adjustmentRecordMessageCode, that.adjustmentRecordMessageCode)
-                .append(adjustmentMessageDescription, that.adjustmentMessageDescription)
-                .append(submissionSeBranchNumber, that.submissionSeBranchNumber)
-                .append(submissionGrossAmount, that.submissionGrossAmount)
-                .append(submissionCurrencyCode, that.submissionCurrencyCode)
-                .append(adjustmentMessageReference, that.adjustmentMessageReference)
-                .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(settlementSeAccountNumber)
-                .append(settlementAccountNameCode)
-                .append(settlementDate)
-                .append(submissionSeAccountNumber)
-                .append(recordCode)
-                .append(recordSubCode)
-                .append(supportingReferenceNumber)
-                .append(settlementGrossAmount)
-                .append(settlementDiscountAmount)
-                .append(settlementNetAmount)
-                .append(serviceFeeRate)
-                .append(settlementTaxAmount)
-                .append(settlementTaxRate)
-                .append(cardMemberAccountNumber)
-                .append(adjustmentRecordMessageCode)
-                .append(adjustmentMessageDescription)
-                .append(submissionSeBranchNumber)
-                .append(submissionGrossAmount)
-                .append(submissionCurrencyCode)
-                .append(adjustmentMessageReference)
-                .toHashCode();
-    }
-
-    @Override
     public String toString() {
         try {
             return jsonMapper.writeValueAsString(this);
@@ -393,6 +335,15 @@ public class AdjustmentRecord {
         }
     }
 
-
+    public static String toCsv(List<AdjustmentRecord> list) {
+        CsvSchema schema = csvMapper.schemaFor(AdjustmentRecord.class).withColumnSeparator(',').withHeader();
+        ObjectWriter myObjectWriter = csvMapper.writer(schema);
+        try {
+            return myObjectWriter.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 }

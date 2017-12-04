@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.apache.commons.lang3.*;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by dashirov on 5/9/17.
@@ -27,54 +29,14 @@ public class TestCobolUtils {
 
     @Test
     public void summaryEPAPE(){
-        // "amex_payee_number","payment_year","payment_number","record_type","detail_record_type","payment_date","payment_amount","debit_balance_amount","aba_bank_number","payee_direct_deposit_acount_number"
-        // "6318979531","2017","171A8468","1","0","2017-06-22","5091090","0","53112615","0008746"
 
-        String serializedString =
-                        StringUtils.rightPad("XxxxxxxxxX",10," ") +
-                        StringUtils.rightPad("___",3," ")+
-                        StringUtils.rightPad("20170101",8," ")+
-                        StringUtils.leftPad(" ",1," ")+
-                        StringUtils.rightPad(" ",10," ")+
-                        StringUtils.leftPad("1",1,"0")+
-                        StringUtils.rightPad("00",2," ")+
-                        StringUtils.leftPad(" ",5," ")+
-                        StringUtils.leftPad("1}",15,"0")+ // SettlementAmount S#
-                        StringUtils.rightPad("XxxxxxxxxxxxxxX",15," ")+
-                        StringUtils.rightPad("____________________",20," ")+
-                        StringUtils.leftPad("0A",15,"0")+ // SettlementGrossAmount S#
-                        StringUtils.leftPad("0A",15,"0")+ // TaxAmount S#
-                        StringUtils.leftPad("2222222",7,"0")+ // TaxRate #
-                        StringUtils.leftPad("0A",15,"0")+ // ServiceFeeAmount S#
-                        StringUtils.leftPad(" ",15," ")+ // Filler S#
-                        StringUtils.leftPad("1111111",7,"0")+ // ServiceFeeRate #
-                        StringUtils.leftPad(" ",55," ")+ // Filler S#
-                        StringUtils.leftPad("{",15,"0")+ // Filler S#
-                        StringUtils.rightPad("PPSHORTNAME",30," ") +
-                        StringUtils.rightPad("PAYEENAME",38," ") +
-                        StringUtils.rightPad("GENERAL ASSBLY",20," ") +
-                        StringUtils.rightPad("USD",3," ") +
-                        StringUtils.leftPad("{",15,"0")+ // PreviousDebitBalance S#
-                        StringUtils.rightPad("IBAN:",34," ") +
-                        StringUtils.rightPad("BIC:",12," ") +
-                        StringUtils.rightPad(" ",55," ")
-                        ;
-
-        System.out.println("'" +serializedString+"'");
-        System.out.println(serializedString.length());
-
-        PaymentRecord record = manager.load(PaymentRecord.class, serializedString);
-        System.out.println(record.toString());
-
-        System.out.println("'" + manager.export(record) +"'");
-
-        Assert.assertEquals("Serialized -> Deserialized -> Serialized: NOK",serializedString,manager.export(record));
-System.out.println("Actual:");
-        String sample=
-"979000003700220130620000000000001000000000000004981168H                                   00000005076091H00000000008629M000000000000000086293O00000000000000{000000000000000000000{0000{00000000000000{0000{00000000000000{00000000000000{                              MXLSAT DMWCHGB WUZWIUU                PRIMARY             AUD00000000000000{                                                                                                    ";
-        PaymentRecord sampleRecord = manager.load(PaymentRecord.class, sample);
-        System.out.println(sampleRecord.toString());
-
+        List<FileHeaderRecord> headers = new ArrayList<>();
+        List<FileTrailerRecord> trailers = new ArrayList<>();
+        List<PaymentRecord> payments = new ArrayList<>();
+        List<PricingRecord> pricing = new ArrayList<>();
+        List<SOCRecord> socs = new ArrayList<>();
+        List<ROCRecord> rocs = new ArrayList<>();
+        List<AdjustmentRecord> adjustments = new ArrayList<>();
         try {
             File sampleFile = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/EPAPE sample test file_fixed_final.txt");
             FileReader fileReader = new FileReader(sampleFile);
@@ -82,44 +44,60 @@ System.out.println("Actual:");
             String line;
             while((line=bufferedReader.readLine())!=null){
                 String header_footer_indicator = line.substring(0,5);
+                Object fileRecord;
                 switch (header_footer_indicator){
                     case "DFHDR":
                         System.out.printf("%5s - %s (%d)\n", header_footer_indicator, "File Header", line.length());
+                        fileRecord = manager.load(FileHeaderRecord.class, line);
+                        System.out.println(fileRecord.toString());
+                        if (fileRecord != null)
+                            headers.add((FileHeaderRecord) fileRecord);
                         break;
                     case "DFTLR":
                         System.out.printf("%5s - %s (%d)\n", header_footer_indicator, "File Footer", line.length());
+                        fileRecord = manager.load(FileTrailerRecord.class, line);
+                        System.out.println(fileRecord.toString());
+                        if (fileRecord != null)
+                            trailers.add((FileTrailerRecord) fileRecord);
                         break;
                     default:
                         String recordId = line.substring(32,35);
-                        Object fileRecord;
+
                         switch (recordId){
                             case "100":
                                 System.out.printf("%3s - %s (%d)\n",recordId,"Payment Record",line.length());
                                 fileRecord = manager.load(PaymentRecord.class, line);
                                 System.out.println(fileRecord.toString());
+                                if (fileRecord!=null)
+                                    payments.add((PaymentRecord)fileRecord);
                                 break;
                             case "110":
                                 System.out.printf("%3s - %s (%d)\n",recordId,"Pricing Summary Record",line.length());
                                 fileRecord = manager.load(PricingRecord.class, line);
                                 System.out.println(fileRecord.toString());
+                                if (fileRecord!=null)
+                                    pricing.add((PricingRecord)fileRecord);
                                 break;
                             case "210":
                                 System.out.printf("%3s - %s (%d)\n",recordId,"SOC Record",line.length());
-                                System.out.println(sample.substring(13,21));
-                                System.out.println(sample.substring(40,48));
                                 try {
-                                    fileRecord = manager.load(SOCRecord.class,sample);
+                                    fileRecord = manager.load(SOCRecord.class,line);
                                     System.out.println(fileRecord.toString());
+                                    if (fileRecord!=null)
+                                        socs.add((SOCRecord) fileRecord);
                                 } catch (Exception e){
                                     System.out.println(e.getMessage());
                                 }
+
                                 break;
                             case "260":
                                 System.out.printf("%3s - %s (%d)\n",recordId,"ROC Record",line.length());
 
                                 try {
-                                    fileRecord = manager.load(ROCRecord.class,sample);
+                                    fileRecord = manager.load(ROCRecord.class,line);
                                     System.out.println(fileRecord.toString());
+                                    if (fileRecord!=null)
+                                        rocs.add((ROCRecord) fileRecord);
                                 } catch (Exception e){
                                     System.out.println(e.getMessage());
                                 }
@@ -128,8 +106,10 @@ System.out.println("Actual:");
                             case "230":
                                 System.out.printf("%3s - %s (%d)\n",recordId,"Adjustment Record",line.length());
                                 try {
-                                    fileRecord = manager.load(AdjustmentRecord.class,sample);
+                                    fileRecord = manager.load(AdjustmentRecord.class,line);
                                     System.out.println(fileRecord.toString());
+                                    if (fileRecord!=null)
+                                        adjustments.add((AdjustmentRecord)fileRecord);
                                 } catch (Exception e){
                                     System.out.println(e.getMessage());
                                 }
@@ -142,7 +122,36 @@ System.out.println("Actual:");
 
 
             }
+            if (!headers.isEmpty()) {
+                System.out.println("HEADERS PARSED:");
+                System.out.println(FileHeaderRecord.toCsv(headers));
+            }
 
+            if (!trailers.isEmpty()) {
+                System.out.println("TRAILERS PARSED:");
+                System.out.println(FileTrailerRecord.toCsv(trailers));
+            }
+
+            if (!adjustments.isEmpty()) {
+                System.out.println("ADJUSTMENT PARSED:");
+                System.out.println(AdjustmentRecord.toCsv(adjustments));
+            }
+            if (!socs.isEmpty()) {
+                System.out.println("SOCs PARSED:");
+                System.out.println(SOCRecord.toCsv(socs));
+            }
+            if (!rocs.isEmpty()) {
+                System.out.println("ROCs PARSED:");
+                System.out.println(ROCRecord.toCsv(rocs));
+            }
+            if (!pricing.isEmpty()) {
+                System.out.println("Pricing PARSED:");
+                System.out.println(PricingRecord.toCsv(pricing));
+            }
+            if (!payments.isEmpty()) {
+                System.out.println("Payments PARSED:");
+                System.out.println(PaymentRecord.toCsv(payments));
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

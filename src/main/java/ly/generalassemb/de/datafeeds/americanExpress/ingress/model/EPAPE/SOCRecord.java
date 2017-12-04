@@ -19,6 +19,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -32,7 +33,7 @@ import java.util.Date;
         "SUBMISSION_SE_ACCOUNT_NUMBER",
         "RECORD_CODE",
         "RECORD_SUB_CODE",
-        
+
         "SOC_DATE",
         "SUBMISSION_CALCULATED_GROSS_AMOUNT",
         "SUBMISSION_DECLARED_GROSS_AMOUNT",
@@ -56,15 +57,15 @@ import java.util.Date;
 })
 @Record(length = 441)
 public class SOCRecord {
-    private final ObjectMapper jsonMapper = new ObjectMapper();
-    private final CsvMapper csvMapper = new CsvMapper();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final CsvMapper csvMapper = new CsvMapper();
 
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
     @NotNull
     private String settlementSeAccountNumber;
-    
+
     @JsonProperty("SETTLEMENT_ACCOUNT_NAME_CODE")
     @Size(max = 3)
     @NotNull
@@ -80,11 +81,11 @@ public class SOCRecord {
     @Size(max = 10)
     @NotNull
     private String submissionSeAccountNumber;
-    
+
     @JsonProperty("RECORD_CODE")
     @Size(max = 1)
     @NotNull
-    
+
     private Integer recordCode;
     @JsonProperty("RECORD_SUB_CODE")
     @Size(max = 2)
@@ -96,17 +97,17 @@ public class SOCRecord {
     @Size(max = 8)
     @NotNull
     private Date socDate;
-    
+
     @JsonProperty("SUBMISSION_CALCULATED_GROSS_AMOUNT")
     @Size(max = 15)
     @NotNull
     private BigDecimal submissionCalculatedGrossAmount;
-    
+
     @JsonProperty("SUBMISSION_DECLARED_GROSS_AMOUNT")
     @Size(max = 15)
     @NotNull
     private BigDecimal submissionDeclaredGrossAmount;
-    
+
     @JsonProperty("DISCOUNT_AMOUNT")
     @Size(max = 15)
     @NotNull
@@ -115,7 +116,7 @@ public class SOCRecord {
     @JsonProperty("SETTLEMENT_NET_AMOUNT")
     @Size(max = 15)
     @NotNull
-    
+
     private BigDecimal settlementNetAmount;
     @JsonProperty("SERVICE_FEE_RATE")
     @Size(max = 7)
@@ -123,10 +124,10 @@ public class SOCRecord {
     private Integer serviceFeeRate;
 
     @JsonProperty("SETTLEMENT_GROSS_AMOUNT")
-    @Size(max = 5)
+    @Size(max = 15)
     @NotNull
     private BigDecimal settlementGrossAmount;
-    
+
     @JsonProperty("ROC_CALCULATED_COUNT")
     @Size(max = 5)
     @NotNull
@@ -137,27 +138,27 @@ public class SOCRecord {
     @Size(max = 15)
     @NotNull
     private BigDecimal settlementTaxAmount;
-    
+
     @JsonProperty("SETTLEMENT_TAX_RATE")
     @Size(max = 7)
     @NotNull
     private Integer settlementTaxRate;
-    
+
     @JsonProperty("SUBMISSION_CURRENCY_CODE")
     @Size(max = 3)
     @NotNull
     private String submissionCurrencyCode;
-    
+
     @JsonProperty("SUBMISSION_NUMBER")
     @Size(max = 15)
     @NotNull
     private Integer submissionNumber;
-    
+
     @JsonProperty("SUBMISSION_SE_BRANCH_NUMBER")
     @Size(max = 10)
     @NotNull
     private String submissionSeBranchNumber;
-    
+
     @JsonProperty("SUBMISSION_METHOD_CODE")
     @Size(max = 2)
     @NotNull
@@ -235,7 +236,8 @@ public class SOCRecord {
         this.socDate = socDate;
     }
 
-    @Field(offset = 49, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getSubmissionCalculatedGrossAmount
+    @Field(offset = 49, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getSubmissionCalculatedGrossAmount
     public BigDecimal getSubmissionCalculatedGrossAmount() {
         return submissionCalculatedGrossAmount;
     }
@@ -244,7 +246,8 @@ public class SOCRecord {
         this.submissionCalculatedGrossAmount = submissionCalculatedGrossAmount;
     }
 
-    @Field(offset = 64, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getSubmissionDeclaredGrossAmount
+    @Field(offset = 64, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getSubmissionDeclaredGrossAmount
     public BigDecimal getSubmissionDeclaredGrossAmount() {
         return submissionDeclaredGrossAmount;
     }
@@ -253,7 +256,8 @@ public class SOCRecord {
         this.submissionDeclaredGrossAmount = submissionDeclaredGrossAmount;
     }
 
-    @Field(offset = 79, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getDiscountAmount
+    @Field(offset = 79, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getDiscountAmount
     public BigDecimal getDiscountAmount() {
         return discountAmount;
     }
@@ -262,7 +266,8 @@ public class SOCRecord {
         this.discountAmount = discountAmount;
     }
 
-    @Field(offset = 109, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getSettlementNetAmount
+    @Field(offset = 109, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getSettlementNetAmount
     public BigDecimal getSettlementNetAmount() {
         return settlementNetAmount;
     }
@@ -280,7 +285,8 @@ public class SOCRecord {
         this.serviceFeeRate = serviceFeeRate;
     }
 
-    @Field(offset = 171, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getSettlementGrossAmount
+    @Field(offset = 171, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getSettlementGrossAmount
     public BigDecimal getSettlementGrossAmount() {
         return settlementGrossAmount;
     }
@@ -289,7 +295,8 @@ public class SOCRecord {
         this.settlementGrossAmount = settlementGrossAmount;
     }
 
-    @Field(offset = 186, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getRocCalculatedCount
+    @Field(offset = 186, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getRocCalculatedCount
     public BigDecimal getRocCalculatedCount() {
         return rocCalculatedCount;
     }
@@ -299,7 +306,8 @@ public class SOCRecord {
     }
 
 
-    @Field(offset = 216, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getSettlementTaxAmount
+    @Field(offset = 216, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getSettlementTaxAmount
     public BigDecimal getSettlementTaxAmount() {
         return settlementTaxAmount;
     }
@@ -353,7 +361,8 @@ public class SOCRecord {
         this.submissionMethodCode = submissionMethodCode;
     }
 
-    @Field(offset = 293, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class) //  getExchangeRate
+    @Field(offset = 293, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    //  getExchangeRate
     public BigDecimal getExchangeRate() {
         return exchangeRate;
     }
@@ -368,7 +377,7 @@ public class SOCRecord {
             return jsonMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object)this).toString();
+            return ((Object) this).toString();
         }
     }
 
@@ -377,6 +386,17 @@ public class SOCRecord {
         ObjectWriter myObjectWriter = csvMapper.writer(schema);
         try {
             return myObjectWriter.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static String toCsv(List<SOCRecord> list) {
+        CsvSchema schema = csvMapper.schemaFor(SOCRecord.class).withColumnSeparator(',').withHeader();
+        ObjectWriter myObjectWriter = csvMapper.writer(schema);
+        try {
+            return myObjectWriter.writeValueAsString(list);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return null;

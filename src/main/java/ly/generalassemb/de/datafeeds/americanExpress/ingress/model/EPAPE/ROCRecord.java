@@ -19,6 +19,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -45,8 +46,8 @@ import java.util.Date;
 })
 @Record(length = 441)
 public class ROCRecord {
-    private final ObjectMapper jsonMapper = new ObjectMapper();
-    private final CsvMapper csvMapper = new CsvMapper();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final CsvMapper csvMapper = new CsvMapper();
 
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
@@ -251,7 +252,7 @@ public class ROCRecord {
             return jsonMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object)this).toString();
+            return ((Object) this).toString();
         }
     }
 
@@ -260,6 +261,17 @@ public class ROCRecord {
         ObjectWriter myObjectWriter = csvMapper.writer(schema);
         try {
             return myObjectWriter.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static String toCsv(List<ROCRecord> list) {
+        CsvSchema schema = csvMapper.schemaFor(ROCRecord.class).withColumnSeparator(',').withHeader();
+        ObjectWriter myObjectWriter = csvMapper.writer(schema);
+        try {
+            return myObjectWriter.writeValueAsString(list);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return null;

@@ -15,6 +15,7 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNume
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Created by davidashirov on 12/1/17.
@@ -40,8 +41,8 @@ import java.math.BigDecimal;
 })
 @Record(length = 441)
 public class PricingRecord {
-    private final ObjectMapper jsonMapper = new ObjectMapper();
-    private final CsvMapper csvMapper = new CsvMapper();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final CsvMapper csvMapper = new CsvMapper();
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -113,14 +114,16 @@ public class PricingRecord {
     @javax.validation.constraints.NotNull
     private BigDecimal netAmount;
 
-    @Field(offset=1,length=10,align= Align.RIGHT,paddingChar = '0')//  getSettlementSeAccountNumber
+    @Field(offset = 1, length = 10, align = Align.RIGHT, paddingChar = '0')//  getSettlementSeAccountNumber
     public String getSettlementSeAccountNumber() {
         return settlementSeAccountNumber;
     }
+
     public void setSettlementSeAccountNumber(String settlementSeAccountNumber) {
         this.settlementSeAccountNumber = settlementSeAccountNumber;
     }
-    @Field(offset=11,length=3,align=Align.RIGHT,paddingChar = '0')//  getSettlementCurrencyCode
+
+    @Field(offset = 11, length = 3, align = Align.RIGHT, paddingChar = '0')//  getSettlementCurrencyCode
     public String getSettlementCurrencyCode() {
         return settlementCurrencyCode;
     }
@@ -129,7 +132,7 @@ public class PricingRecord {
         this.settlementCurrencyCode = settlementCurrencyCode;
     }
 
-    @Field(offset=33,length=1,align=Align.RIGHT,paddingChar = '0')//  getRecordCode
+    @Field(offset = 33, length = 1, align = Align.RIGHT, paddingChar = '0')//  getRecordCode
     public Integer getRecordCode() {
         return recordCode;
     }
@@ -138,7 +141,7 @@ public class PricingRecord {
         this.recordCode = recordCode;
     }
 
-    @Field(offset=34,length=2,align=Align.RIGHT,paddingChar = '0')//  getRecordSubCode
+    @Field(offset = 34, length = 2, align = Align.RIGHT, paddingChar = '0')//  getRecordSubCode
     public String getRecordSubCode() {
         return recordSubCode;
     }
@@ -147,7 +150,7 @@ public class PricingRecord {
         this.recordSubCode = recordSubCode;
     }
 
-    @Field(offset=36,length=64,align=Align.RIGHT,paddingChar = '0')//  getPricingDescription
+    @Field(offset = 36, length = 64, align = Align.RIGHT, paddingChar = '0')//  getPricingDescription
     public String getPricingDescription() {
         return pricingDescription;
     }
@@ -156,7 +159,7 @@ public class PricingRecord {
         this.pricingDescription = pricingDescription;
     }
 
-    @Field(offset=100,length=7,align=Align.RIGHT,paddingChar = '0')//  getDiscountRate
+    @Field(offset = 100, length = 7, align = Align.RIGHT, paddingChar = '0')//  getDiscountRate
     public Integer getDiscountRate() {
         return discountRate;
     }
@@ -165,7 +168,8 @@ public class PricingRecord {
         this.discountRate = discountRate;
     }
 
-    @Field(offset=107,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getFeePerCharge
+    @Field(offset = 107, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getFeePerCharge
     public BigDecimal getFeePerCharge() {
         return feePerCharge;
     }
@@ -174,7 +178,8 @@ public class PricingRecord {
         this.feePerCharge = feePerCharge;
     }
 
-    @Field(offset=122,length=5,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getNumberOfCharges
+    @Field(offset = 122, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getNumberOfCharges
     public BigDecimal getNumberOfCharges() {
         return numberOfCharges;
     }
@@ -183,7 +188,8 @@ public class PricingRecord {
         this.numberOfCharges = numberOfCharges;
     }
 
-    @Field(offset=127,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getGrossAmount
+    @Field(offset = 127, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getGrossAmount
     public BigDecimal getGrossAmount() {
         return grossAmount;
     }
@@ -192,7 +198,8 @@ public class PricingRecord {
         this.grossAmount = grossAmount;
     }
 
-    @Field(offset=142,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getGrossDebitAmount
+    @Field(offset = 142, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getGrossDebitAmount
     public BigDecimal getGrossDebitAmount() {
         return grossDebitAmount;
     }
@@ -201,7 +208,8 @@ public class PricingRecord {
         this.grossDebitAmount = grossDebitAmount;
     }
 
-    @Field(offset=157,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getGrossCredeitAmount
+    @Field(offset = 157, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getGrossCredeitAmount
     public BigDecimal getGrossCredeitAmount() {
         return grossCredeitAmount;
     }
@@ -210,7 +218,8 @@ public class PricingRecord {
         this.grossCredeitAmount = grossCredeitAmount;
     }
 
-    @Field(offset=172,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getDiscountFee
+    @Field(offset = 172, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getDiscountFee
     public BigDecimal getDiscountFee() {
         return discountFee;
     }
@@ -220,7 +229,8 @@ public class PricingRecord {
     }
 
 
-    @Field(offset=187,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getServiceFee
+    @Field(offset = 187, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getServiceFee
     public BigDecimal getServiceFee() {
         return serviceFee;
     }
@@ -230,7 +240,8 @@ public class PricingRecord {
     }
 
 
-    @Field(offset=202,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)//  getNetAmount
+    @Field(offset = 202, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+//  getNetAmount
     public BigDecimal getNetAmount() {
         return netAmount;
     }
@@ -245,7 +256,7 @@ public class PricingRecord {
             return jsonMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object)this).toString();
+            return ((Object) this).toString();
         }
     }
 
@@ -254,6 +265,16 @@ public class PricingRecord {
         ObjectWriter myObjectWriter = csvMapper.writer(schema);
         try {
             return myObjectWriter.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    public static String toCsv(List<PricingRecord> list) {
+        CsvSchema schema = csvMapper.schemaFor(PricingRecord.class).withColumnSeparator(',').withHeader();
+        ObjectWriter myObjectWriter = csvMapper.writer(schema);
+        try {
+            return myObjectWriter.writeValueAsString(list);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return null;

@@ -16,6 +16,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
+import com.ancientprogramming.fixedformat4j.annotation.Record;
 import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
@@ -527,6 +528,9 @@ public class FeedHandler {
                             ).build()
                     );
 
+                } else if (type.equals("EPAPE")){
+                    // TODO: Implement PAN AMERICAN RECO FEED HANDLER
+                    System.err.println("EPAPE is not implemented!");
                 }
             }
         } catch (IOException | java.text.ParseException e) {
