@@ -53,6 +53,7 @@ public enum AmexSignSuffix {
 
     }
 
+
     public Long toLong (String numericPrefix) {
         Long prefix = 0L;
         if (numericPrefix != null && !numericPrefix.equals("")) {
