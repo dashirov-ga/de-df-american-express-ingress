@@ -270,15 +270,122 @@ public class PricingRecord {
             return null;
         }
     }
-    public static String toCsv(List<PricingRecord> list) {
-        CsvSchema schema = csvMapper.schemaFor(PricingRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
-        try {
-            return myObjectWriter.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
+
+
+    public static final class Builder {
+        private String settlementSeAccountNumber;
+        private String settlementCurrencyCode;
+        private Integer recordCode;
+        private String recordSubCode;
+        private String pricingDescription;
+        private Integer discountRate;
+        private BigDecimal feePerCharge;
+        private BigDecimal numberOfCharges;
+        private BigDecimal grossAmount;
+        private BigDecimal grossDebitAmount;
+        private BigDecimal grossCredeitAmount;
+        private BigDecimal discountFee;
+        private BigDecimal serviceFee;
+        private BigDecimal netAmount;
+
+        private Builder() {
+        }
+
+        public static Builder aPricingRecord() {
+            return new Builder();
+        }
+
+        public Builder withSettlementSeAccountNumber(String settlementSeAccountNumber) {
+            this.settlementSeAccountNumber = settlementSeAccountNumber;
+            return this;
+        }
+
+        public Builder withSettlementCurrencyCode(String settlementCurrencyCode) {
+            this.settlementCurrencyCode = settlementCurrencyCode;
+            return this;
+        }
+
+        public Builder withRecordCode(Integer recordCode) {
+            this.recordCode = recordCode;
+            return this;
+        }
+
+        public Builder withRecordSubCode(String recordSubCode) {
+            this.recordSubCode = recordSubCode;
+            return this;
+        }
+
+        public Builder withPricingDescription(String pricingDescription) {
+            this.pricingDescription = pricingDescription;
+            return this;
+        }
+
+        public Builder withDiscountRate(Integer discountRate) {
+            this.discountRate = discountRate;
+            return this;
+        }
+
+        public Builder withFeePerCharge(BigDecimal feePerCharge) {
+            this.feePerCharge = feePerCharge;
+            return this;
+        }
+
+        public Builder withNumberOfCharges(BigDecimal numberOfCharges) {
+            this.numberOfCharges = numberOfCharges;
+            return this;
+        }
+
+        public Builder withGrossAmount(BigDecimal grossAmount) {
+            this.grossAmount = grossAmount;
+            return this;
+        }
+
+        public Builder withGrossDebitAmount(BigDecimal grossDebitAmount) {
+            this.grossDebitAmount = grossDebitAmount;
+            return this;
+        }
+
+        public Builder withGrossCredeitAmount(BigDecimal grossCredeitAmount) {
+            this.grossCredeitAmount = grossCredeitAmount;
+            return this;
+        }
+
+        public Builder withDiscountFee(BigDecimal discountFee) {
+            this.discountFee = discountFee;
+            return this;
+        }
+
+        public Builder withServiceFee(BigDecimal serviceFee) {
+            this.serviceFee = serviceFee;
+            return this;
+        }
+
+        public Builder withNetAmount(BigDecimal netAmount) {
+            this.netAmount = netAmount;
+            return this;
+        }
+
+        public Builder but() {
+            return aPricingRecord().withSettlementSeAccountNumber(settlementSeAccountNumber).withSettlementCurrencyCode(settlementCurrencyCode).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withPricingDescription(pricingDescription).withDiscountRate(discountRate).withFeePerCharge(feePerCharge).withNumberOfCharges(numberOfCharges).withGrossAmount(grossAmount).withGrossDebitAmount(grossDebitAmount).withGrossCredeitAmount(grossCredeitAmount).withDiscountFee(discountFee).withServiceFee(serviceFee).withNetAmount(netAmount);
+        }
+
+        public PricingRecord build() {
+            PricingRecord pricingRecord = new PricingRecord();
+            pricingRecord.setSettlementSeAccountNumber(settlementSeAccountNumber);
+            pricingRecord.setSettlementCurrencyCode(settlementCurrencyCode);
+            pricingRecord.setRecordCode(recordCode);
+            pricingRecord.setRecordSubCode(recordSubCode);
+            pricingRecord.setPricingDescription(pricingDescription);
+            pricingRecord.setDiscountRate(discountRate);
+            pricingRecord.setFeePerCharge(feePerCharge);
+            pricingRecord.setNumberOfCharges(numberOfCharges);
+            pricingRecord.setGrossAmount(grossAmount);
+            pricingRecord.setGrossDebitAmount(grossDebitAmount);
+            pricingRecord.setGrossCredeitAmount(grossCredeitAmount);
+            pricingRecord.setDiscountFee(discountFee);
+            pricingRecord.setServiceFee(serviceFee);
+            pricingRecord.setNetAmount(netAmount);
+            return pricingRecord;
         }
     }
-
 }

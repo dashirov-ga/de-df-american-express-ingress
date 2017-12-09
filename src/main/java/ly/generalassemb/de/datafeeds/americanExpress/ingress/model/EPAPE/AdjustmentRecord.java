@@ -56,6 +56,17 @@ public class AdjustmentRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
 
+    private String paymentId;
+    @JsonProperty("GENERATED_PAYMENT_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public String getPaymentId() {
+        return paymentId;
+    }
+
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
+
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
     @javax.validation.constraints.NotNull
@@ -148,6 +159,7 @@ public class AdjustmentRecord {
     @Size(max = 3)
     @javax.validation.constraints.NotNull
     private String submissionCurrencyCode;
+
     @JsonProperty("ADJUSTMENT_MESSAGE_REFERENCE")
     @Size(max = 15)
     @javax.validation.constraints.NotNull
@@ -177,6 +189,7 @@ public class AdjustmentRecord {
     public void setSettlementDate(Date settlementDate) {
         this.settlementDate = settlementDate;
     }
+
     @Field(offset=23,length=10,align=Align.LEFT,paddingChar = ' ')
     public String getSubmissionSeAccountNumber() {
         return submissionSeAccountNumber;
@@ -184,6 +197,7 @@ public class AdjustmentRecord {
     public void setSubmissionSeAccountNumber(String submissionSeAccountNumber) {
         this.submissionSeAccountNumber = submissionSeAccountNumber;
     }
+
     @Field(offset=33,length=1,align=Align.RIGHT,paddingChar = '0')
     public Integer getRecordCode() {
         return recordCode;
@@ -191,6 +205,7 @@ public class AdjustmentRecord {
     public void setRecordCode(Integer recordCode) {
         this.recordCode = recordCode;
     }
+
     @Field(offset=34,length=2,align=Align.LEFT,paddingChar = ' ')
     public String getRecordSubCode() {
         return recordSubCode;
@@ -207,6 +222,7 @@ public class AdjustmentRecord {
     public void setSupportingReferenceNumber(BigDecimal supportingReferenceNumber) {
         this.supportingReferenceNumber = supportingReferenceNumber;
     }
+
     @Field(offset=52,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
     public BigDecimal getSettlementGrossAmount() {
         return settlementGrossAmount;
@@ -220,58 +236,58 @@ public class AdjustmentRecord {
     public BigDecimal getSettlementDiscountAmount() {
         return settlementDiscountAmount;
     }
-
     public void setSettlementDiscountAmount(BigDecimal settlementDiscountAmount) {
         this.settlementDiscountAmount = settlementDiscountAmount;
     }
+
     @Field(offset=97,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
     public BigDecimal getSettlementNetAmount() {
         return settlementNetAmount;
     }
-
     public void setSettlementNetAmount(BigDecimal settlementNetAmount) {
         this.settlementNetAmount = settlementNetAmount;
     }
+
     @Field(offset=112,length=7,align=Align.RIGHT,paddingChar = '0')
     public Integer getServiceFeeRate() {
         return serviceFeeRate;
     }
-
     public void setServiceFeeRate(Integer serviceFeeRate) {
         this.serviceFeeRate = serviceFeeRate;
     }
+
     @Field(offset=154,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
     public BigDecimal getSettlementTaxAmount() {
         return settlementTaxAmount;
     }
-
     public void setSettlementTaxAmount(BigDecimal settlementTaxAmount) {
         this.settlementTaxAmount = settlementTaxAmount;
     }
+
     @Field(offset=169,length=7,align=Align.RIGHT,paddingChar = '0')
     public Integer getSettlementTaxRate() {
         return settlementTaxRate;
     }
-
     public void setSettlementTaxRate(Integer settlementTaxRate) {
         this.settlementTaxRate = settlementTaxRate;
     }
+
     @Field(offset=191,length=15,align=Align.RIGHT,paddingChar = '0')
     public BigDecimal getCardMemberAccountNumber() {
         return cardMemberAccountNumber;
     }
-
     public void setCardMemberAccountNumber(BigDecimal cardMemberAccountNumber) {
         this.cardMemberAccountNumber = cardMemberAccountNumber;
     }
+
     @Field(offset=206,length=10,align=Align.LEFT,paddingChar = ' ')
     public String getAdjustmentRecordMessageCode() {
         return adjustmentRecordMessageCode;
     }
-
     public void setAdjustmentRecordMessageCode(String adjustmentRecordMessageCode) {
         this.adjustmentRecordMessageCode = adjustmentRecordMessageCode;
     }
+
     @Field(offset=216,length=64,align=Align.LEFT,paddingChar = ' ')
     public String getAdjustmentMessageDescription() {
         return adjustmentMessageDescription;
@@ -280,6 +296,7 @@ public class AdjustmentRecord {
     public void setAdjustmentMessageDescription(String adjustmentMessageDescription) {
         this.adjustmentMessageDescription = adjustmentMessageDescription;
     }
+
     @Field(offset=283,length=10,align=Align.LEFT,paddingChar = ' ')
     public String getSubmissionSeBranchNumber() {
         return submissionSeBranchNumber;
@@ -288,22 +305,23 @@ public class AdjustmentRecord {
     public void setSubmissionSeBranchNumber(String submissionSeBranchNumber) {
         this.submissionSeBranchNumber = submissionSeBranchNumber;
     }
+
     @Field(offset=293,length=15,align=Align.RIGHT,paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
     public BigDecimal getSubmissionGrossAmount() {
         return submissionGrossAmount;
     }
-    
     public void setSubmissionGrossAmount(BigDecimal submissionGrossAmount) {
         this.submissionGrossAmount = submissionGrossAmount;
     }
+
     @Field(offset=308,length=3,align=Align.LEFT,paddingChar = ' ')
     public String getSubmissionCurrencyCode() {
         return submissionCurrencyCode;
     }
-
     public void setSubmissionCurrencyCode(String submissionCurrencyCode) {
         this.submissionCurrencyCode = submissionCurrencyCode;
     }
+
     @JsonGetter("ADJUSTMENT_MESSAGE_REFERENCE")
     @Field(offset=311,length=15,align=Align.LEFT,paddingChar = ' ')
     public String getAdjustmentMessageReference() {
@@ -325,8 +343,11 @@ public class AdjustmentRecord {
     }
 
     public String toCsv() {
-        CsvSchema schema = csvMapper.schemaFor(AdjustmentRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
+        ObjectWriter myObjectWriter = csvMapper.writer(
+                csvMapper.schemaFor(AdjustmentRecord.class)
+                        .withColumnSeparator(',')
+                        .withHeader()
+        );
         try {
             return myObjectWriter.writeValueAsString(this);
         } catch (JsonProcessingException e) {
@@ -335,15 +356,169 @@ public class AdjustmentRecord {
         }
     }
 
-    public static String toCsv(List<AdjustmentRecord> list) {
-        CsvSchema schema = csvMapper.schemaFor(AdjustmentRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
-        try {
-            return myObjectWriter.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
+    public static final class Builder {
+        private String paymentId;
+        private String settlementSeAccountNumber;
+        private String settlementAccountNameCode;
+        private Date settlementDate;
+        private String submissionSeAccountNumber;
+        private Integer recordCode;
+        private String recordSubCode;
+        private BigDecimal supportingReferenceNumber;
+        private BigDecimal settlementGrossAmount;
+        private BigDecimal settlementDiscountAmount;
+        private BigDecimal settlementNetAmount;
+        private Integer serviceFeeRate;
+        private BigDecimal settlementTaxAmount;
+        private Integer settlementTaxRate;
+        private BigDecimal cardMemberAccountNumber;
+        private String adjustmentRecordMessageCode;
+        private String adjustmentMessageDescription;
+        private String submissionSeBranchNumber;
+        private BigDecimal submissionGrossAmount;
+        private String submissionCurrencyCode;
+        private String adjustmentMessageReference;
+
+        private Builder() {
+        }
+
+        public static Builder anAdjustmentRecord() {
+            return new Builder();
+        }
+
+        public Builder withPaymentId(String paymentId) {
+            this.paymentId = paymentId;
+            return this;
+        }
+
+        public Builder withSettlementSeAccountNumber(String settlementSeAccountNumber) {
+            this.settlementSeAccountNumber = settlementSeAccountNumber;
+            return this;
+        }
+
+        public Builder withSettlementAccountNameCode(String settlementAccountNameCode) {
+            this.settlementAccountNameCode = settlementAccountNameCode;
+            return this;
+        }
+
+        public Builder withSettlementDate(Date settlementDate) {
+            this.settlementDate = settlementDate;
+            return this;
+        }
+
+        public Builder withSubmissionSeAccountNumber(String submissionSeAccountNumber) {
+            this.submissionSeAccountNumber = submissionSeAccountNumber;
+            return this;
+        }
+
+        public Builder withRecordCode(Integer recordCode) {
+            this.recordCode = recordCode;
+            return this;
+        }
+
+        public Builder withRecordSubCode(String recordSubCode) {
+            this.recordSubCode = recordSubCode;
+            return this;
+        }
+
+        public Builder withSupportingReferenceNumber(BigDecimal supportingReferenceNumber) {
+            this.supportingReferenceNumber = supportingReferenceNumber;
+            return this;
+        }
+
+        public Builder withSettlementGrossAmount(BigDecimal settlementGrossAmount) {
+            this.settlementGrossAmount = settlementGrossAmount;
+            return this;
+        }
+
+        public Builder withSettlementDiscountAmount(BigDecimal settlementDiscountAmount) {
+            this.settlementDiscountAmount = settlementDiscountAmount;
+            return this;
+        }
+
+        public Builder withSettlementNetAmount(BigDecimal settlementNetAmount) {
+            this.settlementNetAmount = settlementNetAmount;
+            return this;
+        }
+
+        public Builder withServiceFeeRate(Integer serviceFeeRate) {
+            this.serviceFeeRate = serviceFeeRate;
+            return this;
+        }
+
+        public Builder withSettlementTaxAmount(BigDecimal settlementTaxAmount) {
+            this.settlementTaxAmount = settlementTaxAmount;
+            return this;
+        }
+
+        public Builder withSettlementTaxRate(Integer settlementTaxRate) {
+            this.settlementTaxRate = settlementTaxRate;
+            return this;
+        }
+
+        public Builder withCardMemberAccountNumber(BigDecimal cardMemberAccountNumber) {
+            this.cardMemberAccountNumber = cardMemberAccountNumber;
+            return this;
+        }
+
+        public Builder withAdjustmentRecordMessageCode(String adjustmentRecordMessageCode) {
+            this.adjustmentRecordMessageCode = adjustmentRecordMessageCode;
+            return this;
+        }
+
+        public Builder withAdjustmentMessageDescription(String adjustmentMessageDescription) {
+            this.adjustmentMessageDescription = adjustmentMessageDescription;
+            return this;
+        }
+
+        public Builder withSubmissionSeBranchNumber(String submissionSeBranchNumber) {
+            this.submissionSeBranchNumber = submissionSeBranchNumber;
+            return this;
+        }
+
+        public Builder withSubmissionGrossAmount(BigDecimal submissionGrossAmount) {
+            this.submissionGrossAmount = submissionGrossAmount;
+            return this;
+        }
+
+        public Builder withSubmissionCurrencyCode(String submissionCurrencyCode) {
+            this.submissionCurrencyCode = submissionCurrencyCode;
+            return this;
+        }
+
+        public Builder withAdjustmentMessageReference(String adjustmentMessageReference) {
+            this.adjustmentMessageReference = adjustmentMessageReference;
+            return this;
+        }
+
+        public Builder but() {
+            return anAdjustmentRecord().withPaymentId(paymentId).withSettlementSeAccountNumber(settlementSeAccountNumber).withSettlementAccountNameCode(settlementAccountNameCode).withSettlementDate(settlementDate).withSubmissionSeAccountNumber(submissionSeAccountNumber).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withSupportingReferenceNumber(supportingReferenceNumber).withSettlementGrossAmount(settlementGrossAmount).withSettlementDiscountAmount(settlementDiscountAmount).withSettlementNetAmount(settlementNetAmount).withServiceFeeRate(serviceFeeRate).withSettlementTaxAmount(settlementTaxAmount).withSettlementTaxRate(settlementTaxRate).withCardMemberAccountNumber(cardMemberAccountNumber).withAdjustmentRecordMessageCode(adjustmentRecordMessageCode).withAdjustmentMessageDescription(adjustmentMessageDescription).withSubmissionSeBranchNumber(submissionSeBranchNumber).withSubmissionGrossAmount(submissionGrossAmount).withSubmissionCurrencyCode(submissionCurrencyCode).withAdjustmentMessageReference(adjustmentMessageReference);
+        }
+
+        public AdjustmentRecord build() {
+            AdjustmentRecord adjustmentRecord = new AdjustmentRecord();
+            adjustmentRecord.setPaymentId(paymentId);
+            adjustmentRecord.setSettlementSeAccountNumber(settlementSeAccountNumber);
+            adjustmentRecord.setSettlementAccountNameCode(settlementAccountNameCode);
+            adjustmentRecord.setSettlementDate(settlementDate);
+            adjustmentRecord.setSubmissionSeAccountNumber(submissionSeAccountNumber);
+            adjustmentRecord.setRecordCode(recordCode);
+            adjustmentRecord.setRecordSubCode(recordSubCode);
+            adjustmentRecord.setSupportingReferenceNumber(supportingReferenceNumber);
+            adjustmentRecord.setSettlementGrossAmount(settlementGrossAmount);
+            adjustmentRecord.setSettlementDiscountAmount(settlementDiscountAmount);
+            adjustmentRecord.setSettlementNetAmount(settlementNetAmount);
+            adjustmentRecord.setServiceFeeRate(serviceFeeRate);
+            adjustmentRecord.setSettlementTaxAmount(settlementTaxAmount);
+            adjustmentRecord.setSettlementTaxRate(settlementTaxRate);
+            adjustmentRecord.setCardMemberAccountNumber(cardMemberAccountNumber);
+            adjustmentRecord.setAdjustmentRecordMessageCode(adjustmentRecordMessageCode);
+            adjustmentRecord.setAdjustmentMessageDescription(adjustmentMessageDescription);
+            adjustmentRecord.setSubmissionSeBranchNumber(submissionSeBranchNumber);
+            adjustmentRecord.setSubmissionGrossAmount(submissionGrossAmount);
+            adjustmentRecord.setSubmissionCurrencyCode(submissionCurrencyCode);
+            adjustmentRecord.setAdjustmentMessageReference(adjustmentMessageReference);
+            return adjustmentRecord;
         }
     }
-
 }

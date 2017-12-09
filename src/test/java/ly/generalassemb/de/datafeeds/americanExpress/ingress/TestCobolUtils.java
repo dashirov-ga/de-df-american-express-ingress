@@ -2,168 +2,173 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress;
 
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.*;
-import org.junit.Assert;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.CsvUtil;
+import org.apache.commons.cli.ParseException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.commons.lang3.*;
-
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by dashirov on 5/9/17.
  */
+
+
+
 public class TestCobolUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestCobolUtils.class);
     private static final FixedFormatManager manager = new FixedFormatManagerImpl();
 
+
+
+
+
     @Test
-    public void summaryEPAPE(){
-
-        List<FileHeaderRecord> headers = new ArrayList<>();
-        List<FileTrailerRecord> trailers = new ArrayList<>();
-        List<PaymentRecord> payments = new ArrayList<>();
-        List<PricingRecord> pricing = new ArrayList<>();
-        List<SOCRecord> socs = new ArrayList<>();
-        List<ROCRecord> rocs = new ArrayList<>();
-        List<AdjustmentRecord> adjustments = new ArrayList<>();
+    public void testEPAPEParser(){
+        List<EPAPEFile> fileProcessed = new ArrayList<>();
         try {
-            File sampleFile = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/EPAPE sample test file_fixed_final.txt");
-            FileReader fileReader = new FileReader(sampleFile);
-            BufferedReader bufferedReader = new BufferedReader(fileReader);
-            String line;
-            while((line=bufferedReader.readLine())!=null){
-                String header_footer_indicator = line.substring(0,5);
-                Object fileRecord;
-                switch (header_footer_indicator){
-                    case "DFHDR":
-                        System.out.printf("%5s - %s (%d)\n", header_footer_indicator, "File Header", line.length());
-                        fileRecord = manager.load(FileHeaderRecord.class, line);
-                        System.out.println(fileRecord.toString());
-                        if (fileRecord != null)
-                            headers.add((FileHeaderRecord) fileRecord);
-                        break;
-                    case "DFTLR":
-                        System.out.printf("%5s - %s (%d)\n", header_footer_indicator, "File Footer", line.length());
-                        fileRecord = manager.load(FileTrailerRecord.class, line);
-                        System.out.println(fileRecord.toString());
-                        if (fileRecord != null)
-                            trailers.add((FileTrailerRecord) fileRecord);
-                        break;
-                    default:
-                        String recordId = line.substring(32,35);
+           int lineNo=0;
+           File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/EPAPE sample Fixed 1.txt");
+           FileReader fileReader = new FileReader(file);
+           BufferedReader reader = new BufferedReader(fileReader);
+           String line;
+           FixedFormatManager manager = new FixedFormatManagerImpl();
 
-                        switch (recordId){
-                            case "100":
-                                System.out.printf("%3s - %s (%d)\n",recordId,"Payment Record",line.length());
-                                fileRecord = manager.load(PaymentRecord.class, line);
-                                System.out.println(fileRecord.toString());
-                                if (fileRecord!=null)
-                                    payments.add((PaymentRecord)fileRecord);
-                                break;
-                            case "110":
-                                System.out.printf("%3s - %s (%d)\n",recordId,"Pricing Summary Record",line.length());
-                                fileRecord = manager.load(PricingRecord.class, line);
-                                System.out.println(fileRecord.toString());
-                                if (fileRecord!=null)
-                                    pricing.add((PricingRecord)fileRecord);
-                                break;
-                            case "210":
-                                System.out.printf("%3s - %s (%d)\n",recordId,"SOC Record",line.length());
-                                try {
-                                    fileRecord = manager.load(SOCRecord.class,line);
-                                    System.out.println(fileRecord.toString());
-                                    if (fileRecord!=null)
-                                        socs.add((SOCRecord) fileRecord);
-                                } catch (Exception e){
-                                    System.out.println(e.getMessage());
-                                }
+           EPAPEFile aFile = null;
+           while ((line = reader.readLine()) != null) {
+               lineNo++;
+               // read the file one line at a time until it is exhausted
+               // check if the line look like header or trailer. If it does, open or close a payment batch
+               // otherwise process file contents
+               // LOGGER.debug(String.format("Read line '%s'", line));
 
-                                break;
-                            case "260":
-                                System.out.printf("%3s - %s (%d)\n",recordId,"ROC Record",line.length());
+               String header_footer_indicator = line.substring(0, 5);
+               if (aFile!=null && header_footer_indicator.equals("DFTLR")) {
+                   LOGGER.debug(String.format("%03d Line is a Trailer Record. Stop reading from this file.",lineNo));
+                   FileTrailerRecord ftr;
+                   if ((ftr = manager.load(FileTrailerRecord.class, line)) != null) {
+                       aFile.setTrailerRecord(ftr);
+                       fileProcessed.add(aFile);
+                   }
+                   aFile = null;
+                   continue; // stop reading the data file after file trailer
+               } else if (aFile == null && header_footer_indicator.equals("DFHDR")) {
+                   LOGGER.debug(String.format("%03d Line is a Header Record. This is a new file. ",lineNo));
+                   FileHeaderRecord fhr;
+                   if ((fhr = manager.load(FileHeaderRecord.class, line)) != null)
+                       aFile = EPAPEFile.FileBuilder.aFile().withHeaderRecord(fhr).withPaymentList(new ArrayList<>()).build();
+                   continue; // move onto the next line
+               }
 
-                                try {
-                                    fileRecord = manager.load(ROCRecord.class,line);
-                                    System.out.println(fileRecord.toString());
-                                    if (fileRecord!=null)
-                                        rocs.add((ROCRecord) fileRecord);
-                                } catch (Exception e){
-                                    System.out.println(e.getMessage());
-                                }
+              // LOGGER.debug("Line is a Detail Record. Determining its type ");
 
-                                break;
-                            case "230":
-                                System.out.printf("%3s - %s (%d)\n",recordId,"Adjustment Record",line.length());
-                                try {
-                                    fileRecord = manager.load(AdjustmentRecord.class,line);
-                                    System.out.println(fileRecord.toString());
-                                    if (fileRecord!=null)
-                                        adjustments.add((AdjustmentRecord)fileRecord);
-                                } catch (Exception e){
-                                    System.out.println(e.getMessage());
-                                }
-                                break;
-                        }
+               String recordId = line.substring(32, 35);
+                   // while processing the file, determine wht record type the line represents by examining
+                   // combined record code
 
+               if (recordId.equals("100")) {
+                   LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,PaymentRecord.class));
+                   PaymentRecord p = manager.load(PaymentRecord.class, line);
+                   if (p != null) {
+                       if (aFile == null){
+                            throw new ParseException("Payment Record must follow File Header Record");
+                       }
+                       ReconciledPayment aPayment = ReconciledPayment.ReconciledPaymentBuilder.aReconciledPayment().withPayment(p).build();
+                       aFile.getPaymentList().add(aPayment);
+
+                   }
+               } else if (recordId.equals("110")) {// Skip pricing records for now, not interested
+                   LOGGER.debug(String.format("%03d Line is a type %s %s record",lineNo, recordId,PricingRecord.class));
+                   LOGGER.debug("Not interested in pricing records");
+               } else if (recordId.equals("210")) {
+                   LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,SOCRecord.class));
+                   // Assert SOC Record was seen after Payment record, which has been seen after Header record
+                   SOCRecord soc = manager.load(SOCRecord.class, line);
+                   if (soc != null) {
+                       if (aFile==null || aFile.getPaymentList()==null){
+                           throw new ParseException("SOC Record must follow Payment Record, File Header Record");
+                       }
+                       ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+                       soc.setPaymentId( currentPayment.getPayment().getPaymentId() );
+                       currentPayment.getMerchantSubmissions().add(
+                               MerchantSubmission.Builder.aMerchantSubmission().withSocRecord(soc).build());
+                   }
+               } else if (recordId.equals("260")) {
+                   LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,ROCRecord.class));
+                   ROCRecord roc = manager.load(ROCRecord.class, line);
+                   if (roc != null ) {
+                           if (aFile == null || aFile.getPaymentList() == null || aFile.getPaymentList().size() == 0 ){
+                               throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+                           }
+                           ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+                           if (currentPayment == null){
+                               throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+                           }
+
+                           if ( currentPayment.getMerchantSubmissions() == null || currentPayment.getMerchantSubmissions().size() == 0) {
+                              throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+
+                           }
+                           MerchantSubmission currentMerchantSubmission = currentPayment.getMerchantSubmissions().get(currentPayment.getMerchantSubmissions().size() - 1);
+                           roc.setPaymentId(currentMerchantSubmission.getSocRecord().getPaymentId());
+                           roc.setSocId(currentMerchantSubmission.getSocRecord().getSocId());
+                           currentMerchantSubmission.getRocRecords().add(roc);
+
+                   }
+               } else if (recordId.equals("230")) {
+                   LOGGER.debug(String.format("%03d Line is a type %s %s record",lineNo,recordId,AdjustmentRecord.class));
+                   AdjustmentRecord adj = manager.load(AdjustmentRecord.class, line);
+                   if (adj != null){
+                       if (aFile == null){
+                           throw new ParseException("Asjustment record must follow Payment Record, File Header Record");
+                       }
+                       ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+
+                       adj.setPaymentId(currentPayment.getPayment().getPaymentId());
+                       currentPayment.getAdjustments().add(adj);
+
+                   }
+
+               }
+
+           }
+           reader.close();
+           fileReader.close();
+           System.out.println(fileProcessed);
+           List<PaymentRecord> p = new ArrayList<>();
+           List<SOCRecord> s = new ArrayList<>();
+           List<ROCRecord> r = new ArrayList<>();
+           List<AdjustmentRecord> a = new ArrayList<>();
+            for ( EPAPEFile epapeFile: fileProcessed) {
+                for ( ReconciledPayment reconciledPayment : epapeFile.getPaymentList()) {
+                    p.add(reconciledPayment.getPayment());
+                    for ( MerchantSubmission submission  : reconciledPayment.getMerchantSubmissions()) {
+                             s.add(submission.getSocRecord());
+                             r.addAll(submission.getRocRecords());
+                    }
+                    a.addAll(reconciledPayment.getAdjustments());
                 }
-
-
-
-
             }
-            if (!headers.isEmpty()) {
-                System.out.println("HEADERS PARSED:");
-                System.out.println(FileHeaderRecord.toCsv(headers));
-            }
-
-            if (!trailers.isEmpty()) {
-                System.out.println("TRAILERS PARSED:");
-                System.out.println(FileTrailerRecord.toCsv(trailers));
-            }
-
-            if (!adjustments.isEmpty()) {
-                System.out.println("ADJUSTMENT PARSED:");
-                System.out.println(AdjustmentRecord.toCsv(adjustments));
-            }
-            if (!socs.isEmpty()) {
-                System.out.println("SOCs PARSED:");
-                System.out.println(SOCRecord.toCsv(socs));
-            }
-            if (!rocs.isEmpty()) {
-                System.out.println("ROCs PARSED:");
-                System.out.println(ROCRecord.toCsv(rocs));
-            }
-            if (!pricing.isEmpty()) {
-                System.out.println("Pricing PARSED:");
-                System.out.println(PricingRecord.toCsv(pricing));
-            }
-            if (!payments.isEmpty()) {
-                System.out.println("Payments PARSED:");
-                System.out.println(PaymentRecord.toCsv(payments));
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
+            System.out.println(CsvUtil.toCSV(p,PaymentRecord.class));
+            System.out.println(CsvUtil.toCSV(a,AdjustmentRecord.class));
+            System.out.println(CsvUtil.toCSV(s,SOCRecord.class));
+            System.out.println(CsvUtil.toCSV(r,ROCRecord.class));
+       } catch (  IOException | ParseException e){
+           e.printStackTrace();
+       }
     }
+
     @Test
     public void testAnnotations(){
         AdjustmentRecord b =
-                AdjustmentRecordBuilder.anAdjustmentRecord()
+                AdjustmentRecord.Builder.anAdjustmentRecord()
                         .withAdjustmentMessageDescription("Desc").
                         withSettlementDate(new Date()).build();
         CsvMapper mapper = new CsvMapper();
@@ -180,18 +185,6 @@ public class TestCobolUtils {
 
     }
 
-    @Test
-    public void testAdjustmentRecordToCSV(){
-        AdjustmentRecord b = AdjustmentRecordBuilder.anAdjustmentRecord().withAdjustmentRecordMessageCode("TEST").withSettlementDate(new Date()).build();
-        System.out.println(b.toCsv());
-        System.out.println(b.toString());
-    }
 
-    @Test
-    public void testPaymentRecordToCSV(){
-        PaymentRecord b = PaymentRecordBuilder.aPaymentRecord().withSEBankAccountNumber("12312312").withSettlementDate(new Date()).build();
-        System.out.println(b.toCsv());
-        System.out.println(b.toString());
-    }
 
 }

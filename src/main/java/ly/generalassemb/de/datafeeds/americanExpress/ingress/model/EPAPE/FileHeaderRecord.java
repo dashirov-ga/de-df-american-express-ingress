@@ -138,15 +138,65 @@ public class FileHeaderRecord {
         }
     }
 
-    public static String toCsv(List<FileHeaderRecord> list) {
-        CsvSchema schema = FileHeaderRecord.csvMapper.schemaFor(FileHeaderRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
-        try {
-            return myObjectWriter.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
+
+    public static final class Builder {
+        private String recordType;
+        private Date date;
+        private String time;
+        private String id;
+        private String name;
+        private String versionControlNumber;
+
+        private Builder() {
+        }
+
+        public static Builder aFileHeaderRecord() {
+            return new Builder();
+        }
+
+        public Builder withRecordType(String recordType) {
+            this.recordType = recordType;
+            return this;
+        }
+
+        public Builder withDate(Date date) {
+            this.date = date;
+            return this;
+        }
+
+        public Builder withTime(String time) {
+            this.time = time;
+            return this;
+        }
+
+        public Builder withId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder withName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder withVersionControlNumber(String versionControlNumber) {
+            this.versionControlNumber = versionControlNumber;
+            return this;
+        }
+
+        public Builder but() {
+            return aFileHeaderRecord().withRecordType(recordType).withDate(date).withTime(time).withId(id).withName(name).withVersionControlNumber(versionControlNumber);
+        }
+
+        public FileHeaderRecord build() {
+            FileHeaderRecord fileHeaderRecord = new FileHeaderRecord();
+            fileHeaderRecord.setRecordType(recordType);
+            fileHeaderRecord.setDate(date);
+            fileHeaderRecord.setTime(time);
+            fileHeaderRecord.setId(id);
+            fileHeaderRecord.setName(name);
+            fileHeaderRecord.setVersionControlNumber(versionControlNumber);
+            return fileHeaderRecord;
         }
     }
-
 }

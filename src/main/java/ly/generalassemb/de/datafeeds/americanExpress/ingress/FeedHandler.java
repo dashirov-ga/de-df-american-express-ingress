@@ -16,7 +16,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
-import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
+import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
 import com.jcraft.jsch.*;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
@@ -27,8 +28,12 @@ import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
 import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.*;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileHeader;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.DataFileTrailer;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.CsvUtil;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RunID;
@@ -61,14 +66,20 @@ public class FeedHandler {
 
     private enum S3Prefix {
         EPTRN("EPTRN", "EPTRN", ".dat"),
-        EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
-        EPTRN_TRAILER("EPTRN-TRL", "CSV", ".csv"),
         EPTRN_SUMMARY("EPTRN-SUMMARY", "CSV", ".csv"),
         EPTRN_SOC_DETAIL("EPTRN-SOC-DETAIL", "CSV", ".csv"),
         EPTRN_ROC_DETAIL("EPTRN-ROC-DETAIL", "CSV", ".csv"),
         EPTRN_ADJUSTMENT_DETAIL("EPTRN-ADJ-DETAIL", "CSV", ".csv"),
+
         CBNOT_DETAIL("CBNOT-DETAIL", "CSV", ".csv"),
-        CBNOT("CBNOT", "CBNOT", ".dat");
+        CBNOT("CBNOT", "CBNOT", ".dat"),
+
+        EPAPE("EPAPE","EPAPE",".dat"),
+        EPAPE_SUMMARY("EPAPE-SUMMARY","CSV",".csv"),
+        EPAPE_ADJUSTMENT_DETAIL("EPAPE-ADJ-DETAIL","CSV",".csv"),
+        EPAPE_SOC_DETAIL("EPAPE-SOC-DETAIL","CSV",".csv"),
+        EPAPE_ROC_DETAIL("EPAPE-ROC-DETAIL","CSV",".csv")
+        ;
 
         private final String prefix;
         private final String format;
@@ -365,7 +376,8 @@ public class FeedHandler {
             for (Map<String, Object> input : filesDownloaded) {
                 File inputFile = (File) input.get("file");
                 String type = (String) input.get("type");
-                BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+                FileReader fileReader =  new FileReader(inputFile);
+                BufferedReader reader = new BufferedReader(fileReader);
                 String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
                 String line;
                 LOGGER.debug("Pricessing {}", uniqueFileId);
@@ -399,7 +411,7 @@ public class FeedHandler {
                             LOGGER.debug(record.toString());
                             adjustmentDetails.add((AdjustmentDetail) record);
                         } else {
-                            LOGGER.error("None of the patterns matched! for this data line!");
+                            LOGGER.error("None of the patterns matched for this data line!");
                         }
                     }
                     // Every line in the file downloaded has been parsed, you have json and csv data available now
@@ -421,7 +433,7 @@ public class FeedHandler {
                         if (!skipProcessingStepsSet.contains("clean-local"))
                             summaryFile.deleteOnExit();
                         else
-                            LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
+                            LOGGER.debug("Summary CSV EPAPEFile: {}", summaryFile.getPath());
                         Summary.writeCSVFile(summaryFile.getPath(), summaries);
                         List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SUMMARY, k -> new ArrayList<>());
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId)));
@@ -433,7 +445,7 @@ public class FeedHandler {
                         if (!skipProcessingStepsSet.contains("clean-local"))
                             adjustmentDetailsFile.deleteOnExit();
                         else
-                            LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
+                            LOGGER.debug("Adjustment Details CSV EPAPEFile: {}", adjustmentDetailsFile.getPath());
                         AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
                         List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId)));
@@ -444,7 +456,7 @@ public class FeedHandler {
                         if (!skipProcessingStepsSet.contains("clean-local"))
                             socDetailsFile.deleteOnExit();
                         else
-                            LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
+                            LOGGER.debug("SOC Details Details CSV EPAPEFile: {}", socDetailsFile.getPath());
                         SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
                         List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SOC_DETAIL, k -> new ArrayList<>());
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId)));
@@ -455,7 +467,7 @@ public class FeedHandler {
                         if (!skipProcessingStepsSet.contains("clean-local"))
                             rocDetailsFile.deleteOnExit();
                         else
-                            LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
+                            LOGGER.debug("ROC Details Details CSV EPAPEFile: {}", rocDetailsFile.getPath());
                         ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
                         List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ROC_DETAIL, k -> new ArrayList<>());
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId)));
@@ -510,7 +522,7 @@ public class FeedHandler {
                         if (!skipProcessingStepsSet.contains("clean-local"))
                             chargebackDetailsFile.deleteOnExit();
                         else
-                            LOGGER.debug("Chargeback Details CSV File: {}", chargebackDetailsFile.getPath());
+                            LOGGER.debug("Chargeback Details CSV EPAPEFile: {}", chargebackDetailsFile.getPath());
                         Detail.writeCSVFile(chargebackDetailsFile.getPath(), cbDetails);
                         List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.CBNOT_DETAIL, k -> new ArrayList<>());
                         entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
@@ -529,10 +541,236 @@ public class FeedHandler {
                     );
 
                 } else if (type.equals("EPAPE")){
-                    // TODO: Implement PAN AMERICAN RECO FEED HANDLER
-                    System.err.println("EPAPE is not implemented!");
+                    FixedFormatManager manager = new FixedFormatManagerImpl();
+
+                    List<EPAPEFile> fileProcessed = new ArrayList<>();
+
+                        int lineNo=0;
+                        EPAPEFile aFile = null;
+                        while ((line = reader.readLine()) != null) {
+                            lineNo++;
+                            // read the file one line at a time until it is exhausted
+                            // check if the line look like header or trailer. If it does, open or close a payment batch
+                            // otherwise process file contents
+                            // LOGGER.debug(String.format("Read line '%s'", line));
+
+                            String header_footer_indicator = line.substring(0, 5);
+                            if (aFile!=null && header_footer_indicator.equals("DFTLR")) {
+                                LOGGER.debug(String.format("%03d Line is a Trailer Record. Stop reading from this file.",lineNo));
+                                FileTrailerRecord ftr;
+                                if ((ftr = manager.load(FileTrailerRecord.class, line)) != null) {
+                                    aFile.setTrailerRecord(ftr);
+                                    fileProcessed.add(aFile);
+                                }
+                                aFile = null;
+                                continue; // stop reading the data file after file trailer
+                            } else if (aFile == null && header_footer_indicator.equals("DFHDR")) {
+                                LOGGER.debug(String.format("%03d Line is a Header Record. This is a new file. ",lineNo));
+                                FileHeaderRecord fhr;
+                                if ((fhr = manager.load(FileHeaderRecord.class, line)) != null)
+                                    aFile = EPAPEFile.FileBuilder.aFile().withHeaderRecord(fhr).withPaymentList(new ArrayList<>()).build();
+                                continue; // move onto the next line
+                            }
+
+                            // LOGGER.debug("Line is a Detail Record. Determining its type ");
+
+                            String recordId = line.substring(32, 35);
+                            // while processing the file, determine wht record type the line represents by examining
+                            // combined record code
+
+                            if (recordId.equals("100")) {
+                                LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,PaymentRecord.class));
+                                PaymentRecord p = manager.load(PaymentRecord.class, line);
+                                if (p != null) {
+                                    if (aFile == null){
+                                        throw new ParseException("Payment Record must follow File Header Record");
+                                    }
+                                    ReconciledPayment aPayment = ReconciledPayment.ReconciledPaymentBuilder.aReconciledPayment().withPayment(p).build();
+
+                                }
+                            } else if (recordId.equals("110")) {// Skip pricing records for now, not interested
+                                LOGGER.debug(String.format("%03d Line is a type %s %s record",lineNo, recordId,PricingRecord.class));
+                                LOGGER.debug("Not interested in pricing records");
+                            } else if (recordId.equals("210")) {
+                                LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,SOCRecord.class));
+                                // Assert SOC Record was seen after Payment record, which has been seen after Header record
+                                SOCRecord soc = manager.load(SOCRecord.class, line);
+                                if (soc != null) {
+                                    if (aFile==null || aFile.getPaymentList()==null){
+                                        throw new ParseException("SOC Record must follow Payment Record, File Header Record");
+                                    }
+                                    ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+                                    soc.setPaymentId( currentPayment.getPayment().getPaymentId() );
+                                    currentPayment.getMerchantSubmissions().add(
+                                            MerchantSubmission.Builder.aMerchantSubmission().withSocRecord(soc).build());
+                                }
+                            } else if (recordId.equals("260")) {
+                                LOGGER.debug(String.format("%03d Line is a type %s  %s record",lineNo, recordId,ROCRecord.class));
+                                ROCRecord roc = manager.load(ROCRecord.class, line);
+                                if (roc != null ) {
+                                    if (aFile == null || aFile.getPaymentList() == null || aFile.getPaymentList().size() == 0 ){
+                                        throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+                                    }
+                                    ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+                                    if (currentPayment == null){
+                                        throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+                                    }
+
+                                    if ( currentPayment.getMerchantSubmissions() == null || currentPayment.getMerchantSubmissions().size() == 0) {
+                                        throw new ParseException("ROC Record must follow SOC Record, Payment Record, File Header Record");
+
+                                    }
+                                    MerchantSubmission currentMerchantSubmission = currentPayment.getMerchantSubmissions().get(currentPayment.getMerchantSubmissions().size() - 1);
+                                    roc.setPaymentId(currentMerchantSubmission.getSocRecord().getPaymentId());
+                                    roc.setSocId(currentMerchantSubmission.getSocRecord().getSocId());
+                                    currentMerchantSubmission.getRocRecords().add(roc);
+
+                                }
+                            } else if (recordId.equals("230")) {
+                                LOGGER.debug(String.format("%03d Line is a type %s %s record",lineNo,recordId,AdjustmentRecord.class));
+                                AdjustmentRecord adj = manager.load(AdjustmentRecord.class, line);
+                                if (adj != null){
+                                    if (aFile == null){
+                                        throw new ParseException("Asjustment record must follow Payment Record, File Header Record");
+                                    }
+                                    ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
+
+                                    adj.setPaymentId(currentPayment.getPayment().getPaymentId());
+                                    currentPayment.getAdjustments().add(adj);
+
+                                }
+
+                            }
+
+                        }
+
+                        LOGGER.debug("File processed.");
+                        List<PaymentRecord> p = new ArrayList<>();
+                        List<SOCRecord> s = new ArrayList<>();
+                        List<ROCRecord> r = new ArrayList<>();
+                        List<AdjustmentRecord> a = new ArrayList<>();
+                        for ( EPAPEFile epapeFile: fileProcessed) {
+                            for ( ReconciledPayment reconciledPayment : epapeFile.getPaymentList()) {
+                                p.add(reconciledPayment.getPayment());
+                                for ( MerchantSubmission submission  : reconciledPayment.getMerchantSubmissions()) {
+                                    s.add(submission.getSocRecord());
+                                    r.addAll(submission.getRocRecords());
+                                }
+                                a.addAll(reconciledPayment.getAdjustments());
+                            }
+                        }
+
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.RUNNING)
+                                            .withStartedAt(stepStart)
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
+
+                        System.out.println(CsvUtil.toCSV(p,PaymentRecord.class));
+                        System.out.println(CsvUtil.toCSV(a,AdjustmentRecord.class));
+                        System.out.println(CsvUtil.toCSV(s,SOCRecord.class));
+                        System.out.println(CsvUtil.toCSV(r,ROCRecord.class));
+
+
+                        // HERE
+
+                    LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
+                    if (p != null && p.size() > 0) {
+                        File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            summaryFile.deleteOnExit();
+                        else
+                            LOGGER.debug("Summary CSV EPAPE: {}", summaryFile.getPath());
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(summaryFile));
+                        String summary = CsvUtil.toCSV( p, PaymentRecord.class);
+                        if (summary!=null)
+                              bw.write(summary);
+                        bw.flush();
+                        bw.close();
+
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPAPE_SUMMARY, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPAPE_SUMMARY, uniqueFileId)));
+                    }
+
+                    if (a.size() > 0) {
+                        File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            adjustmentDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("Adjustment Details CSV EPAPE: {}", adjustmentDetailsFile.getPath());
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(adjustmentDetailsFile));
+                        String adjustments = CsvUtil.toCSV( a, AdjustmentRecord.class);
+                        if (adjustments!=null)
+                            bw.write(adjustments);
+                        bw.flush();
+                        bw.close();
+
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPAPE_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPAPE_ADJUSTMENT_DETAIL, uniqueFileId)));
+                    }
+
+                    if (s.size() > 0) {
+                        File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            socDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("SOC Details CSV EPAPE: {}", socDetailsFile.getPath());
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(socDetailsFile));
+                        String socs = CsvUtil.toCSV( s, SOCRecord.class);
+                        if (socs!=null)
+                            bw.write(socs);
+                        bw.flush();
+                        bw.close();
+
+
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPAPE_SOC_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPAPE_SOC_DETAIL, uniqueFileId)));
+                    }
+
+                    if (r.size() > 0) {
+                        File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
+                        if (!skipProcessingStepsSet.contains("clean-local"))
+                            rocDetailsFile.deleteOnExit();
+                        else
+                            LOGGER.debug("ROC Details CSV EPAPE: {}", rocDetailsFile.getPath());
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(rocDetailsFile));
+                        String rocs = CsvUtil.toCSV( r, ROCRecord.class);
+                        if (rocs!=null)
+                            bw.write(rocs);
+                        bw.flush();
+                        bw.close();
+
+
+                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPAPE_ROC_DETAIL, k -> new ArrayList<>());
+                        entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPAPE_ROC_DETAIL, uniqueFileId)));
+                    }
+
+
+                    uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPAPE, uniqueFileId));
+                    track(
+                            Unstructured.builder().eventData(
+                                    new StepStatus()
+                                            .withRunId(runId)
+                                            .withName("s3-upload")
+                                            .withState(StepStatus.State.COMPLETED)
+                                            .withStartedAt(stepStart)
+                                            .withEndedAt(new Date())
+                                            .getSelfDescribingJson()
+                            ).build()
+                    );
+
+                        // TO HERE
+
                 }
+                reader.close();
+                fileReader.close();
             }
+
         } catch (IOException | java.text.ParseException e) {
             // had trouble reading input or creating temp files for the output. Abort the job.
             track(
@@ -824,7 +1062,7 @@ public class FeedHandler {
         PutObjectRequest req = new PutObjectRequest(
                 bucket,
                 key,
-                f); // takes File not String fileName...
+                f); // takes EPAPEFile not String fileName...
         req.setTagging(new ObjectTagging(tags));
         ObjectMetadata meta = new ObjectMetadata();
         if (f.getName().endsWith(".csv")) {
@@ -854,7 +1092,7 @@ public class FeedHandler {
      */
     private static void uploadToPostgresTask(String file) {
         try {
-            LOGGER.info("Loading CSV File {} into PostgreSQL Database", file);
+            LOGGER.info("Loading CSV EPAPEFile {} into PostgreSQL Database", file);
             FileReader reader = new FileReader(file);
 
             // Class.forName(configuration.get().getString("sink.postgres.jdbc.driver"));

@@ -49,6 +49,26 @@ public class ROCRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
 
+    private String paymentId;
+    @JsonProperty("GENERATED_PAYMENT_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public String getPaymentId() {
+        return paymentId;
+    }
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
+
+    private String socId;
+    @JsonProperty("GENERATED_SOC_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public String getSocId() {
+        return socId;
+    }
+
+    public void setSocId(String socId) {
+        this.socId = socId;
+    }
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -267,15 +287,128 @@ public class ROCRecord {
         }
     }
 
-    public static String toCsv(List<ROCRecord> list) {
-        CsvSchema schema = csvMapper.schemaFor(ROCRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
-        try {
-            return myObjectWriter.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
+
+    public static final class Builder {
+        private String paymentId;
+        private String socId;
+        private String settlementSeAccountNumber;
+        private String settlementAccountNameCode;
+        private String submissionSeAccountNumber;
+        private Integer recordCode;
+        private String recordSubCode;
+        private BigDecimal chargeAmount;
+        private Date chargeDate;
+        private String rocReferenceNumber;
+        private String rocReferenceNumberCpcOnly;
+        private String threeDigitChargeAuthorizationCode;
+        private String cardMemberAccountNumber;
+        private String airlineTicketNumber;
+        private String sixDigitChargeAuthorizationCode;
+
+        private Builder() {
+        }
+
+        public static Builder aROCRecord() {
+            return new Builder();
+        }
+
+        public Builder withPaymentId(String paymentId) {
+            this.paymentId = paymentId;
+            return this;
+        }
+
+        public Builder withSocId(String socId) {
+            this.socId = socId;
+            return this;
+        }
+
+        public Builder withSettlementSeAccountNumber(String settlementSeAccountNumber) {
+            this.settlementSeAccountNumber = settlementSeAccountNumber;
+            return this;
+        }
+
+        public Builder withSettlementAccountNameCode(String settlementAccountNameCode) {
+            this.settlementAccountNameCode = settlementAccountNameCode;
+            return this;
+        }
+
+        public Builder withSubmissionSeAccountNumber(String submissionSeAccountNumber) {
+            this.submissionSeAccountNumber = submissionSeAccountNumber;
+            return this;
+        }
+
+        public Builder withRecordCode(Integer recordCode) {
+            this.recordCode = recordCode;
+            return this;
+        }
+
+        public Builder withRecordSubCode(String recordSubCode) {
+            this.recordSubCode = recordSubCode;
+            return this;
+        }
+
+        public Builder withChargeAmount(BigDecimal chargeAmount) {
+            this.chargeAmount = chargeAmount;
+            return this;
+        }
+
+        public Builder withChargeDate(Date chargeDate) {
+            this.chargeDate = chargeDate;
+            return this;
+        }
+
+        public Builder withRocReferenceNumber(String rocReferenceNumber) {
+            this.rocReferenceNumber = rocReferenceNumber;
+            return this;
+        }
+
+        public Builder withRocReferenceNumberCpcOnly(String rocReferenceNumberCpcOnly) {
+            this.rocReferenceNumberCpcOnly = rocReferenceNumberCpcOnly;
+            return this;
+        }
+
+        public Builder withThreeDigitChargeAuthorizationCode(String threeDigitChargeAuthorizationCode) {
+            this.threeDigitChargeAuthorizationCode = threeDigitChargeAuthorizationCode;
+            return this;
+        }
+
+        public Builder withCardMemberAccountNumber(String cardMemberAccountNumber) {
+            this.cardMemberAccountNumber = cardMemberAccountNumber;
+            return this;
+        }
+
+        public Builder withAirlineTicketNumber(String airlineTicketNumber) {
+            this.airlineTicketNumber = airlineTicketNumber;
+            return this;
+        }
+
+        public Builder withSixDigitChargeAuthorizationCode(String sixDigitChargeAuthorizationCode) {
+            this.sixDigitChargeAuthorizationCode = sixDigitChargeAuthorizationCode;
+            return this;
+        }
+
+        public Builder but() {
+            return aROCRecord().withPaymentId(paymentId).withSocId(socId).withSettlementSeAccountNumber(settlementSeAccountNumber).withSettlementAccountNameCode(settlementAccountNameCode).withSubmissionSeAccountNumber(submissionSeAccountNumber).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withChargeAmount(chargeAmount).withChargeDate(chargeDate).withRocReferenceNumber(rocReferenceNumber).withRocReferenceNumberCpcOnly(rocReferenceNumberCpcOnly).withThreeDigitChargeAuthorizationCode(threeDigitChargeAuthorizationCode).withCardMemberAccountNumber(cardMemberAccountNumber).withAirlineTicketNumber(airlineTicketNumber).withSixDigitChargeAuthorizationCode(sixDigitChargeAuthorizationCode);
+        }
+
+        public ROCRecord build() {
+            ROCRecord rOCRecord = new ROCRecord();
+            rOCRecord.setPaymentId(paymentId);
+            rOCRecord.setSocId(socId);
+            rOCRecord.setSettlementSeAccountNumber(settlementSeAccountNumber);
+            rOCRecord.setSettlementAccountNameCode(settlementAccountNameCode);
+            rOCRecord.setSubmissionSeAccountNumber(submissionSeAccountNumber);
+            rOCRecord.setRecordCode(recordCode);
+            rOCRecord.setRecordSubCode(recordSubCode);
+            rOCRecord.setChargeAmount(chargeAmount);
+            rOCRecord.setChargeDate(chargeDate);
+            rOCRecord.setRocReferenceNumber(rocReferenceNumber);
+            rOCRecord.setRocReferenceNumberCpcOnly(rocReferenceNumberCpcOnly);
+            rOCRecord.setThreeDigitChargeAuthorizationCode(threeDigitChargeAuthorizationCode);
+            rOCRecord.setCardMemberAccountNumber(cardMemberAccountNumber);
+            rOCRecord.setAirlineTicketNumber(airlineTicketNumber);
+            rOCRecord.setSixDigitChargeAuthorizationCode(sixDigitChargeAuthorizationCode);
+            return rOCRecord;
         }
     }
-
 }

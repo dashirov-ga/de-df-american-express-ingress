@@ -14,12 +14,15 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -60,6 +63,23 @@ public class SOCRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
 
+    @JsonProperty("GENERATED_SOC_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public String getSocId(){
+        return uniqueCode().toString();
+    }
+
+    @JsonProperty("GENERATED_PAYMENT_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private String paymentId;
+
+    public String getPaymentId() {
+        return paymentId;
+    }
+
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -226,9 +246,10 @@ public class SOCRecord {
         this.recordSubCode = recordSubCode;
     }
 
-    @FixedFormatPattern("yyyyMMdd")
-    @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSocDate
-    public Date getSocDate() {
+     // TODO: Uncmmment in production
+     // @FixedFormatPattern("yyyyMMdd")
+     // @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSocDate
+     public Date getSocDate() {
         return socDate;
     }
 
@@ -392,15 +413,208 @@ public class SOCRecord {
         }
     }
 
-    public static String toCsv(List<SOCRecord> list) {
-        CsvSchema schema = csvMapper.schemaFor(SOCRecord.class).withColumnSeparator(',').withHeader();
-        ObjectWriter myObjectWriter = csvMapper.writer(schema);
-        try {
-            return myObjectWriter.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
-        }
+
+
+    public UUID uniqueCode() {
+        return UUID.nameUUIDFromBytes(
+                new StringBuilder()
+                .append(settlementSeAccountNumber)
+                .append(settlementAccountNameCode)
+                .append(settlementDate)
+                .append(submissionSeAccountNumber)
+                .append(recordCode)
+                .append(recordSubCode)
+                .append(socDate)
+                .append(submissionCalculatedGrossAmount)
+                .append(submissionDeclaredGrossAmount)
+                .append(discountAmount)
+                .append(settlementNetAmount)
+                .append(serviceFeeRate)
+                .append(settlementGrossAmount)
+                .append(rocCalculatedCount)
+                .append(settlementTaxAmount)
+                .append(settlementTaxRate)
+                .append(submissionCurrencyCode)
+                .append(submissionNumber)
+                .append(submissionSeBranchNumber)
+                .append(submissionMethodCode)
+                .append(exchangeRate)
+                .toString().getBytes()
+        );
     }
 
+    public static final class Builder {
+        private String paymentId;
+        private String settlementSeAccountNumber;
+        private String settlementAccountNameCode;
+        private Date settlementDate;
+        private String submissionSeAccountNumber;
+
+        private Integer recordCode;
+        private String recordSubCode;
+        private Date socDate;
+        private BigDecimal submissionCalculatedGrossAmount;
+        private BigDecimal submissionDeclaredGrossAmount;
+        private BigDecimal discountAmount;
+
+        private BigDecimal settlementNetAmount;
+        private Integer serviceFeeRate;
+        private BigDecimal settlementGrossAmount;
+        private BigDecimal rocCalculatedCount;
+        private BigDecimal settlementTaxAmount;
+        private Integer settlementTaxRate;
+        private String submissionCurrencyCode;
+        private Integer submissionNumber;
+        private String submissionSeBranchNumber;
+        private String submissionMethodCode;
+        private BigDecimal exchangeRate;
+
+        private Builder() {
+        }
+
+        public static Builder aSOCRecord() {
+            return new Builder();
+        }
+
+        public Builder withPaymentId(String paymentId) {
+            this.paymentId = paymentId;
+            return this;
+        }
+
+        public Builder withSettlementSeAccountNumber(String settlementSeAccountNumber) {
+            this.settlementSeAccountNumber = settlementSeAccountNumber;
+            return this;
+        }
+
+        public Builder withSettlementAccountNameCode(String settlementAccountNameCode) {
+            this.settlementAccountNameCode = settlementAccountNameCode;
+            return this;
+        }
+
+        public Builder withSettlementDate(Date settlementDate) {
+            this.settlementDate = settlementDate;
+            return this;
+        }
+
+        public Builder withSubmissionSeAccountNumber(String submissionSeAccountNumber) {
+            this.submissionSeAccountNumber = submissionSeAccountNumber;
+            return this;
+        }
+
+        public Builder withRecordCode(Integer recordCode) {
+            this.recordCode = recordCode;
+            return this;
+        }
+
+        public Builder withRecordSubCode(String recordSubCode) {
+            this.recordSubCode = recordSubCode;
+            return this;
+        }
+
+        public Builder withSocDate(Date socDate) {
+            this.socDate = socDate;
+            return this;
+        }
+
+        public Builder withSubmissionCalculatedGrossAmount(BigDecimal submissionCalculatedGrossAmount) {
+            this.submissionCalculatedGrossAmount = submissionCalculatedGrossAmount;
+            return this;
+        }
+
+        public Builder withSubmissionDeclaredGrossAmount(BigDecimal submissionDeclaredGrossAmount) {
+            this.submissionDeclaredGrossAmount = submissionDeclaredGrossAmount;
+            return this;
+        }
+
+        public Builder withDiscountAmount(BigDecimal discountAmount) {
+            this.discountAmount = discountAmount;
+            return this;
+        }
+
+        public Builder withSettlementNetAmount(BigDecimal settlementNetAmount) {
+            this.settlementNetAmount = settlementNetAmount;
+            return this;
+        }
+
+        public Builder withServiceFeeRate(Integer serviceFeeRate) {
+            this.serviceFeeRate = serviceFeeRate;
+            return this;
+        }
+
+        public Builder withSettlementGrossAmount(BigDecimal settlementGrossAmount) {
+            this.settlementGrossAmount = settlementGrossAmount;
+            return this;
+        }
+
+        public Builder withRocCalculatedCount(BigDecimal rocCalculatedCount) {
+            this.rocCalculatedCount = rocCalculatedCount;
+            return this;
+        }
+
+        public Builder withSettlementTaxAmount(BigDecimal settlementTaxAmount) {
+            this.settlementTaxAmount = settlementTaxAmount;
+            return this;
+        }
+
+        public Builder withSettlementTaxRate(Integer settlementTaxRate) {
+            this.settlementTaxRate = settlementTaxRate;
+            return this;
+        }
+
+        public Builder withSubmissionCurrencyCode(String submissionCurrencyCode) {
+            this.submissionCurrencyCode = submissionCurrencyCode;
+            return this;
+        }
+
+        public Builder withSubmissionNumber(Integer submissionNumber) {
+            this.submissionNumber = submissionNumber;
+            return this;
+        }
+
+        public Builder withSubmissionSeBranchNumber(String submissionSeBranchNumber) {
+            this.submissionSeBranchNumber = submissionSeBranchNumber;
+            return this;
+        }
+
+        public Builder withSubmissionMethodCode(String submissionMethodCode) {
+            this.submissionMethodCode = submissionMethodCode;
+            return this;
+        }
+
+        public Builder withExchangeRate(BigDecimal exchangeRate) {
+            this.exchangeRate = exchangeRate;
+            return this;
+        }
+
+        public Builder but() {
+            return aSOCRecord().withPaymentId(paymentId).withSettlementSeAccountNumber(settlementSeAccountNumber).withSettlementAccountNameCode(settlementAccountNameCode).withSettlementDate(settlementDate).withSubmissionSeAccountNumber(submissionSeAccountNumber).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withSocDate(socDate).withSubmissionCalculatedGrossAmount(submissionCalculatedGrossAmount).withSubmissionDeclaredGrossAmount(submissionDeclaredGrossAmount).withDiscountAmount(discountAmount).withSettlementNetAmount(settlementNetAmount).withServiceFeeRate(serviceFeeRate).withSettlementGrossAmount(settlementGrossAmount).withRocCalculatedCount(rocCalculatedCount).withSettlementTaxAmount(settlementTaxAmount).withSettlementTaxRate(settlementTaxRate).withSubmissionCurrencyCode(submissionCurrencyCode).withSubmissionNumber(submissionNumber).withSubmissionSeBranchNumber(submissionSeBranchNumber).withSubmissionMethodCode(submissionMethodCode).withExchangeRate(exchangeRate);
+        }
+
+        public SOCRecord build() {
+            SOCRecord sOCRecord = new SOCRecord();
+            sOCRecord.setPaymentId(paymentId);
+            sOCRecord.setSettlementSeAccountNumber(settlementSeAccountNumber);
+            sOCRecord.setSettlementAccountNameCode(settlementAccountNameCode);
+            sOCRecord.setSettlementDate(settlementDate);
+            sOCRecord.setSubmissionSeAccountNumber(submissionSeAccountNumber);
+            sOCRecord.setRecordCode(recordCode);
+            sOCRecord.setRecordSubCode(recordSubCode);
+            sOCRecord.setSocDate(socDate);
+            sOCRecord.setSubmissionCalculatedGrossAmount(submissionCalculatedGrossAmount);
+            sOCRecord.setSubmissionDeclaredGrossAmount(submissionDeclaredGrossAmount);
+            sOCRecord.setDiscountAmount(discountAmount);
+            sOCRecord.setSettlementNetAmount(settlementNetAmount);
+            sOCRecord.setServiceFeeRate(serviceFeeRate);
+            sOCRecord.setSettlementGrossAmount(settlementGrossAmount);
+            sOCRecord.setRocCalculatedCount(rocCalculatedCount);
+            sOCRecord.setSettlementTaxAmount(settlementTaxAmount);
+            sOCRecord.setSettlementTaxRate(settlementTaxRate);
+            sOCRecord.setSubmissionCurrencyCode(submissionCurrencyCode);
+            sOCRecord.setSubmissionNumber(submissionNumber);
+            sOCRecord.setSubmissionSeBranchNumber(submissionSeBranchNumber);
+            sOCRecord.setSubmissionMethodCode(submissionMethodCode);
+            sOCRecord.setExchangeRate(exchangeRate);
+            return sOCRecord;
+        }
+    }
 }
