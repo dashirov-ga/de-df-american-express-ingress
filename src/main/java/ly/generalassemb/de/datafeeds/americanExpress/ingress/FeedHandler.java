@@ -803,7 +803,7 @@ public class FeedHandler {
         try {
             if (!redshiftLoadable.isEmpty()) {
                 // All files have been seen, parsed, split into record types and loaded to s3
-                // Time to make them show up in the redshift data warehouse and or postgresql database
+                // Time to make them show up in the redshift data warehouse and/or postgresql database
                 stepStart = new Date();
                 track(
                         Unstructured.builder().eventData(
@@ -967,6 +967,18 @@ public class FeedHandler {
             case CBNOT_DETAIL:
                 targetTable = "american_express_revenue_activity_chargeback_detail";
                 deleteKey = "chargeback_adjustment_number";
+            case EPAPE_SUMMARY:
+                targetTable = "american_express_epape_summary";
+                deleteKey = "generated_payment_number";
+            case EPAPE_ROC_DETAIL:
+                targetTable = "american_express_epape_record_of_charge_detail";
+                deleteKey = "generated_payment_number";
+            case EPAPE_SOC_DETAIL:
+                targetTable = "american_express_epape_summary_of_charge_detail";
+                deleteKey = "generated_payment_number";
+            case EPAPE_ADJUSTMENT_DETAIL:
+                targetTable = "american_express_epape_adjustment_detaily";
+                deleteKey = "generated_payment_number";
             default:
                 break;
         }

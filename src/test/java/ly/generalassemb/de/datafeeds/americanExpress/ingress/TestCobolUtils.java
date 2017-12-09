@@ -35,7 +35,7 @@ public class TestCobolUtils {
         List<EPAPEFile> fileProcessed = new ArrayList<>();
         try {
            int lineNo=0;
-           File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/EPAPE sample Fixed 1.txt");
+           File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/EPAPE sample Fixed.txt");
            FileReader fileReader = new FileReader(file);
            BufferedReader reader = new BufferedReader(fileReader);
            String line;
