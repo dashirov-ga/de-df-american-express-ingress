@@ -1,9 +1,7 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EMCBK;
 
-import com.ancientprogramming.fixedformat4j.annotation.Align;
-import com.ancientprogramming.fixedformat4j.annotation.Field;
-import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
-import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -16,7 +14,7 @@ import java.util.Date;
  * Created by davidashirov on 12/10/17.
  */
 @JsonPropertyOrder({
-        "HEADER_INDICATOR",
+        "RECORD_TYPE",
         "APPLICATION_SYSTEM_CODE",
         "FILE_TYPE_CODE",
         "FILE_CREATION_DATE",
@@ -31,16 +29,16 @@ import java.util.Date;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Record
 public class FileHeaderRecord {
-    @JsonProperty("HEADER_INDICATOR")
+    @JsonProperty("RECORD_TYPE")
     @Size(max = 1)
     @NotNull
-    private String headerIndicator;
-    @Field(offset=1,length=1,align= Align.LEFT,paddingChar = ' ')        //  getHeaderIndicator
-    public String getHeaderIndicator() {
-        return headerIndicator;
+    private String recordType;
+    @Field(offset=1,length=1,align= Align.LEFT,paddingChar = ' ')        //  getDataType
+    public String getRecordType() {
+        return recordType;
     }
-    public void setHeaderIndicator(String headerIndicator) {
-        this.headerIndicator = headerIndicator;
+    public void setRecordType(String recordType) {
+        this.recordType = recordType;
     }
 
     @JsonProperty("APPLICATION_SYSTEM_CODE")
@@ -68,8 +66,9 @@ public class FileHeaderRecord {
     }
 
     @JsonProperty("FILE_CREATION_DATE")
-    @Size(max = 8)
+    @Size(max = 10)
     @NotNull
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date fileCreationDate;
     @Field(offset=6,length=8,align=Align.LEFT,paddingChar = ' ')        //  getFileCreationDate
     @FixedFormatPattern("yyyyMMdd")
@@ -119,20 +118,28 @@ public class FileHeaderRecord {
     @JsonProperty("STARS_CREATION_DATE")
     @Size(max = 7)
     @NotNull
-    private String starsCreationDate;
-    @Field(offset=113,length=14,align=Align.LEFT,paddingChar = ' ')        //  getStarsCreationDate
-    @FixedFormatPattern("yyyyD'0'HHmmSS") // Julian Date !
-    public String getStarsCreationDate() {
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private Date starsCreationDate;
+    @Field(offset=113,length=7,align=Align.LEFT,paddingChar = ' ')
+    @FixedFormatPattern("yyyyDDD") // Julian Date !
+    public Date getStarsCreationDate() {
         return starsCreationDate;
     }
-    public void setStarsCreationDate(String starsCreationDate) {
+    public void setStarsCreationDate(Date starsCreationDate) {
         this.starsCreationDate = starsCreationDate;
     }
 
-    // @JsonProperty("STARS_CREATION_TIME")
-    // @Size(max = 7)
-    // @NotNull
-    // private String starsCreationTime;    //  @Field(offset=120,length=7,align=Align.LEFT,paddingChar = ' ')        //  getStarsCreationTime
+    @JsonProperty("STARS_CREATION_TIME")
+    @Size(max = 6)
+    @NotNull
+    private String starsCreationTime;
+    @Field(offset=121,length=6,align=Align.LEFT,paddingChar = ' ')        //  getStarsCreationTime
+    public String getStarsCreationTime() {
+        return starsCreationTime;
+    }
+    public void setStarsCreationTime(String starsCreationTime) {
+        this.starsCreationTime = starsCreationTime;
+    }
 
     @JsonProperty("STARS_FILE_SEQUENCE_NUMBER")
     @Size(max = 3)

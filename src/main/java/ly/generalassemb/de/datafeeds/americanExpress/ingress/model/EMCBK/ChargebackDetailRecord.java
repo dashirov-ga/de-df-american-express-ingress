@@ -16,8 +16,8 @@ import java.util.Date;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-        "DETAIL_INDICATOR",
         "RECORD_TYPE",
+        "DATA_TYPE",
         "SERVICE_ESTABLISHMENT_NUMBER",
         "CARD_NUMBER",
         "CASE_NUMBER",
@@ -58,28 +58,28 @@ import java.util.Date;
 })
 @Record
 public class ChargebackDetailRecord {
-    @JsonProperty("DETAIL_INDICATOR")
+    @JsonProperty("RECORD_TYPE")
     @Size(max = 1)
     @NotNull
-    private String detailIndicator;
-    @Field(offset=1,length=1,align= Align.LEFT,paddingChar = ' ')        //  getDetailIndicator
-    public String getDetailIndicator() {
-        return detailIndicator;
-    }
-    public void setDetailIndicator(String detailIndicator) {
-        this.detailIndicator = detailIndicator;
-    }
-
-    @JsonProperty("RECORD_TYPE")
-    @Size(max = 5)
-    @NotNull
     private String recordType;
-    @Field(offset=2,length=5,align=Align.LEFT,paddingChar = ' ')        //  getRecordType
+    @Field(offset=1,length=1,align= Align.LEFT,paddingChar = ' ')        //  getRecordType
     public String getRecordType() {
         return recordType;
     }
     public void setRecordType(String recordType) {
         this.recordType = recordType;
+    }
+
+    @JsonProperty("DATA_TYPE")
+    @Size(max = 5)
+    @NotNull
+    private String dataType;
+    @Field(offset=2,length=5,align=Align.LEFT,paddingChar = ' ')        //  getDataType
+    public String getDataType() {
+        return dataType;
+    }
+    public void setDataType(String dataType) {
+        this.dataType = dataType;
     }
 
     @JsonProperty("SERVICE_ESTABLISHMENT_NUMBER")
@@ -136,8 +136,8 @@ public class ChargebackDetailRecord {
     @Size(max = 20)
     @NotNull
     private BigDecimal chargebackAmount;
-    @Field(offset=62,length=20,align=Align.LEFT,paddingChar = ' ')        //  getChargebackAmount
-    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=false)
+    @Field(offset=62,length=20,align=Align.RIGHT,paddingChar = ' ')        //  getChargebackAmount
+    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=true, decimalDelimiter = '.')
     public BigDecimal getChargebackAmount() {
         return chargebackAmount;
     }
@@ -223,8 +223,8 @@ public class ChargebackDetailRecord {
     @Size(max = 20)
     @NotNull
     private BigDecimal transactionAmount;
-    @Field(offset=144,length=20,align=Align.LEFT,paddingChar = ' ')        //  getTransactionAmount
-    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=false)
+    @Field(offset=144,length=20,align=Align.RIGHT,paddingChar = ' ')        //  getTransactionAmount
+    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=true, decimalDelimiter = '.')
     public BigDecimal getTransactionAmount() {
         return transactionAmount;
     }
@@ -262,8 +262,8 @@ public class ChargebackDetailRecord {
     @Size(max = 20)
     @NotNull
     private BigDecimal socAmount;
-    @Field(offset=177,length=20,align=Align.LEFT,paddingChar = ' ')        //  getSocAmount
-    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=false)
+    @Field(offset=177,length=20,align=Align.RIGHT,paddingChar = ' ')       //  getSocAmount
+    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=true,decimalDelimiter = '.')
     public BigDecimal getSocAmount() {
         return socAmount;
     }
@@ -311,8 +311,8 @@ public class ChargebackDetailRecord {
     @Size(max = 20)
     @NotNull
     private BigDecimal settlementAmount;
-    @Field(offset=241,length=20,align=Align.LEFT,paddingChar = ' ')        //  getSettlementAmount
-    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=false)
+    @Field(offset=241,length=20,align=Align.RIGHT,paddingChar = ' ')        //  getSettlementAmount
+    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=true, decimalDelimiter = '.')
     public BigDecimal getSettlementAmount() {
         return settlementAmount;
     }
@@ -438,8 +438,8 @@ public class ChargebackDetailRecord {
     @Size(max = 20)
     @NotNull
     private BigDecimal firstPresentmentAmount;
-    @Field(offset=320,length=20,align=Align.LEFT,paddingChar = ' ')        //  getFirstPresentmentAmount
-    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=false)
+    @Field(offset=320,length=20,align=Align.RIGHT,paddingChar = ' ')        //  getFirstPresentmentAmount
+    @FixedFormatDecimal(decimals=2, useDecimalDelimiter=true, decimalDelimiter = '.')
     public BigDecimal getFirstPresentmentAmount() {
         return firstPresentmentAmount;
     }
