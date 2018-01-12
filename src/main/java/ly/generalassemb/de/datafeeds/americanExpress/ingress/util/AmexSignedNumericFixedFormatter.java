@@ -13,8 +13,10 @@ import java.math.BigDecimal;
 public class AmexSignedNumericFixedFormatter implements FixedFormatter{
         @Override
         public Object parse(String s, FormatInstructions formatInstructions) throws FixedFormatException {
-            if ( (s!=null) && (s.length()>0))
-                return  new BigDecimal(CobolUtils.fromCobolSignedString(s,0));
+            if ( (s!=null) && (s.length()>0)) {
+                BigDecimal r = new BigDecimal(CobolUtils.fromCobolSignedString(s, 0));
+                return r.movePointLeft(formatInstructions.getFixedFormatDecimalData().getDecimals());
+            }
             return null;
         }
         @Override

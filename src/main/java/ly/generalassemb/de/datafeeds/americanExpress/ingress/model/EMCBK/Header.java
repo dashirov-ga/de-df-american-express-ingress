@@ -1,6 +1,7 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EMCBK;
 
 import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,7 +29,7 @@ import java.util.Date;
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Record
-public class FileHeaderRecord {
+public class Header {
     @JsonProperty("RECORD_TYPE")
     @Size(max = 1)
     @NotNull
@@ -152,4 +153,10 @@ public class FileHeaderRecord {
     public void setStarsFileSequenceNumber(String starsFileSequenceNumber) {
         this.starsFileSequenceNumber = starsFileSequenceNumber;
     }
+
+
+    public Header parse(FixedFormatManager manager, String line){
+        return manager.load(Header.class,line);
+    }
+
 }

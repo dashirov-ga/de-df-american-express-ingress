@@ -8,7 +8,9 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.FileBasedBuilderParameters;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.convert.DefaultListDelimiterHandler;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.io.*;
 import org.slf4j.Logger;
@@ -19,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Config {
-    private final Logger logger = LoggerFactory.getLogger(Config.class);
+    private static final Logger logger = LoggerFactory.getLogger(Config.class);
     private Configuration config;
 
     public Configuration get() {
@@ -40,15 +42,16 @@ public class Config {
                     new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class);
             Parameters params = new Parameters();
 
-            builder.configure(
-                    ( url == null )
-                            // if you haven't given a URL, then we search for file named "df-american-express-ingress.properties"
-                            ?  params.fileBased().setLocationStrategy(strategy).setFileName("df-american-express-ingress.properties")
-                            // if you passed URL - we only look for the file you mentioned
-                            :  params.fileBased().setLocationStrategy(strategy).setLocationStrategy(strategy).setURL(url)
+            final FileBasedBuilderParameters fileBasedBuilderParameters = params.fileBased();
+            fileBasedBuilderParameters.setListDelimiterHandler(new DefaultListDelimiterHandler(','));
+            if (url == null)
+                fileBasedBuilderParameters.setLocationStrategy(strategy).setFileName("df-american-express-ingress.properties");
+            else
+                fileBasedBuilderParameters.setLocationStrategy(strategy).setLocationStrategy(strategy).setURL(url);
 
-            );
-            config = builder.getConfiguration();
+            builder.configure(fileBasedBuilderParameters);
+
+            this.config = builder.getConfiguration();
             logger.debug("Configuration file successfully loaded");
         } catch (ConfigurationException e) {
             logger.error("Error while lading the configuration file; default config will be used", e);

@@ -3,6 +3,7 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 import com.ancientprogramming.fixedformat4j.annotation.Align;
 import com.ancientprogramming.fixedformat4j.annotation.Field;
 import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -271,6 +272,9 @@ public class PricingRecord {
         }
     }
 
+    public PricingRecord parse(FixedFormatManager manager, String line){
+        return manager.load(PricingRecord.class,line);
+    }
 
     public static final class Builder {
         private String settlementSeAccountNumber;

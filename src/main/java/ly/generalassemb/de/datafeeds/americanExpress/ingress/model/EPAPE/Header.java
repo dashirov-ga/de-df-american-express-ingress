@@ -4,6 +4,7 @@ import com.ancientprogramming.fixedformat4j.annotation.Align;
 import com.ancientprogramming.fixedformat4j.annotation.Field;
 import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
 import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,7 +17,6 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 import javax.validation.constraints.Size;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Created by davidashirov on 12/4/17.
@@ -28,12 +28,10 @@ import java.util.List;
         "TIME",
         "ID",
         "NAME",
-        "RECIPIENT_KEY",
-        "RECORD_COUNT"
-
+        "VERSION_CONTROL_NUMBER"
 })
 @Record
-public class FileTrailerRecord {
+public class Header {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
 
@@ -106,32 +104,17 @@ public class FileTrailerRecord {
         this.name = name;
     }
 
-    @JsonProperty("RECIPIENT_KEY")
-    @Size(max = 40)
+    @JsonProperty("VERSION_CONTROL_NUMBER")
+    @Size(max = 4)
     @javax.validation.constraints.NotNull
-    private String recipientKey;
+    private String versionControlNumber;
 
-    @Field(offset=45,length=40,align=Align.LEFT,paddingChar = ' ')        //  getRecipientKey
-    public String getRecipientKey() {
-        return recipientKey;
+    @Field(offset=44,length=4,align=Align.LEFT,paddingChar = ' ')        //  getVersionControlNumber
+    public String getVersionControlNumber() {
+        return versionControlNumber;
     }
-
-    public void setRecipientKey(String recipientKey) {
-        this.recipientKey = recipientKey;
-    }
-
-    @JsonProperty("RECORD_COUNT")
-    @Size(max = 7)
-    @javax.validation.constraints.NotNull
-    private Integer recordCount;
-
-    @Field(offset=85,length=7,align=Align.RIGHT,paddingChar = '0')        //  getRecordCount
-    public Integer getRecordCount() {
-        return recordCount;
-    }
-
-    public void setRecordCount(Integer recordCount) {
-        this.recordCount = recordCount;
+    public void setVersionControlNumber(String versionControlNumber) {
+        this.versionControlNumber = versionControlNumber;
     }
 
     @Override
@@ -145,7 +128,7 @@ public class FileTrailerRecord {
     }
 
     public String toCsv() {
-        CsvSchema schema = csvMapper.schemaFor(FileTrailerRecord.class).withColumnSeparator(',').withHeader();
+        CsvSchema schema = csvMapper.schemaFor(Header.class).withColumnSeparator(',').withHeader();
         ObjectWriter myObjectWriter = csvMapper.writer(schema);
         try {
             return myObjectWriter.writeValueAsString(this);
@@ -155,6 +138,11 @@ public class FileTrailerRecord {
         }
     }
 
+    public Header parse(FixedFormatManager manager, String line){
+        return manager.load(Header.class,line);
+    }
+
+
 
     public static final class Builder {
         private String recordType;
@@ -162,13 +150,12 @@ public class FileTrailerRecord {
         private String time;
         private String id;
         private String name;
-        private String recipientKey;
-        private Integer recordCount;
+        private String versionControlNumber;
 
         private Builder() {
         }
 
-        public static Builder aFileTrailerRecord() {
+        public static Builder aFileHeaderRecord() {
             return new Builder();
         }
 
@@ -197,30 +184,24 @@ public class FileTrailerRecord {
             return this;
         }
 
-        public Builder withRecipientKey(String recipientKey) {
-            this.recipientKey = recipientKey;
-            return this;
-        }
-
-        public Builder withRecordCount(Integer recordCount) {
-            this.recordCount = recordCount;
+        public Builder withVersionControlNumber(String versionControlNumber) {
+            this.versionControlNumber = versionControlNumber;
             return this;
         }
 
         public Builder but() {
-            return aFileTrailerRecord().withRecordType(recordType).withDate(date).withTime(time).withId(id).withName(name).withRecipientKey(recipientKey).withRecordCount(recordCount);
+            return aFileHeaderRecord().withRecordType(recordType).withDate(date).withTime(time).withId(id).withName(name).withVersionControlNumber(versionControlNumber);
         }
 
-        public FileTrailerRecord build() {
-            FileTrailerRecord fileTrailerRecord = new FileTrailerRecord();
-            fileTrailerRecord.setRecordType(recordType);
-            fileTrailerRecord.setDate(date);
-            fileTrailerRecord.setTime(time);
-            fileTrailerRecord.setId(id);
-            fileTrailerRecord.setName(name);
-            fileTrailerRecord.setRecipientKey(recipientKey);
-            fileTrailerRecord.setRecordCount(recordCount);
-            return fileTrailerRecord;
+        public Header build() {
+            Header fileHeaderRecord = new Header();
+            fileHeaderRecord.setRecordType(recordType);
+            fileHeaderRecord.setDate(date);
+            fileHeaderRecord.setTime(time);
+            fileHeaderRecord.setId(id);
+            fileHeaderRecord.setName(name);
+            fileHeaderRecord.setVersionControlNumber(versionControlNumber);
+            return fileHeaderRecord;
         }
     }
 }

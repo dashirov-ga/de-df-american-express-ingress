@@ -64,97 +64,105 @@ Compression - TBD
 Data Distribution - TBD
 Data Sort Order - TBD
 
-```derby
- CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_summary
-				(
-				amex_payee_number NUMERIC NOT NULL,
-				payment_year NUMERIC NOT NULL,
-				payment_number VARCHAR(8) NOT NULL,
-				record_type INT NOT NULL,
-				detail_record_type INT NOT NULL,
-				payment_date DATE NOT NULL,
-				payment_amount DECIMAL NOT NULL,
-				debit_balance_amount DECIMAL NOT NULL,
-				aba_bank_number NUMERIC,
-				payee_direct_deposit_acount_number VARCHAR(17)
-				);
-COMMENT ON TABLE scratch.american_express_revenue_activity_summary IS 'EPTRN Data File Summary';
+```redshift
 
-CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_adjustment_detail
-				(
-				amex_payee_number NUMERIC NOT NULL,
-				amex_se_number NUMERIC NOT NULL,
-				payment_year NUMERIC NOT NULL,
-				payment_number VARCHAR(8) NOT NULL,
-				record_type INT NOT NULL,
-				detail_record_type INT NOT NULL,
-				amex_process_date DATE NOT NULL,
-				adjustment_number NUMERIC NOT NULL,
-				adjustment_amount DECIMAL NOT NULL,
-				discount_amount DECIMAL NOT NULL,
-				service_fee_amount DECIMAL NOT NULL,
-				net_adjustment_amount DECIMAL NOT NULL,
-				discount_rate DECIMAL DEFAULT 0.00000 NOT NULL,
-				service_fee_rate DECIMAL DEFAULT 0.00000 NOT NULL,
-				card_member_number VARCHAR(17) NOT NULL,
-				adjustment_reason VARCHAR(280)
-				);
-COMMENT ON TABLE scratch.american_express_revenue_activity_adjustment_detail IS 'EPTRN Adjustment Detail';
+CREATE TABLE IF NOT EXISTS
+  adhoc.american_express_eptrn_payment (
+  AMEX_PAYEE_NUMBER    NUMERIC(18, 0) ENCODE ZSTD,
+  PAYMENT_YEAR         NUMERIC(4, 0) ENCODE ZSTD,
+  PAYMENT_NUMBER       VARCHAR(8) PRIMARY KEY DISTKEY ENCODE ZSTD,
+  RECORD_TYPE          VARCHAR(1) ENCODE RUNLENGTH,
+  DETAIL_RECORD_TYPE   VARCHAR(2) ENCODE RUNLENGTH,
+  PAYMENT_DATE         DATE SORTKEY ENCODE ZSTD,
+  PAYMENT_AMOUNT       NUMERIC(18, 2) ENCODE ZSTD,
+  DEBIT_BALANCE_AMOUNT NUMERIC(18, 2) ENCODE RUNLENGTH,
+  ABA_BANK_NUMBER      VARCHAR(9) ENCODE RUNLENGTH,
+  SE_DDA_NUMBER        VARCHAR(17) ENCODE RUNLENGTH
+)
+  DISTSTYLE KEY;
 
-CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_record_of_charge_detail
-				(
-				amex_payee_number NUMERIC NOT NULL,
-				amex_se_number NUMERIC NOT NULL,
-				se_unit_number VARCHAR(10),
-				payment_year NUMERIC NOT NULL,
-				payment_number VARCHAR(8) NOT NULL,
-				record_type INT NOT NULL,
-				detail_record_type INT NOT NULL,
-				se_business_date DATE NOT NULL,
-				amex_process_date DATE NOT NULL,
-				soc_invoice_number NUMERIC NOT NULL,
-				soc_amount DECIMAL NOT NULL,
-				roc_amount DECIMAL NOT NULL,
-				card_member_number VARCHAR(17),
-				card_member_reference_number VARCHAR(11),
-				transaction_Date DATE NOT NULL,
-				invoice_reference_number VARCHAR(30),
-				non_compliant_indicator VARCHAR(1),
-				non_compliant_error_code_1 VARCHAR(4),
-				non_compliant_error_code_2 VARCHAR(4),
-				non_compliant_error_code_3 VARCHAR(4),
-				non_compliant_error_code_4 VARCHAR(4),
-				non_swiped_indicator VARCHAR(1),
-				card_member_number_extended VARCHAR(19)
-				);
-COMMENT ON TABLE scratch.american_express_revenue_activity_record_of_charge_detail IS 'EPTRN ROC Detail';				
+CREATE TABLE IF NOT EXISTS 
+  adhoc.american_express_eptrn_summary_of_charges (
+  AMEX_PAYEE_NUMBER          NUMERIC(18, 0) ENCODE ZSTD,
+  AMEX_SE_NUMBER             NUMERIC(18, 0) ENCODE ZSTD,
+  SE_UNIT_NUMBER             VARCHAR(10) ENCODE ZSTD,
+  PAYMENT_YEAR               NUMERIC(4, 0) ENCODE ZSTD,
+  PAYMENT_NUMBER             VARCHAR(8) DISTKEY ENCODE ZSTD,
+  RECORD_TYPE                VARCHAR(1) ENCODE RUNLENGTH,
+  DETAIL_RECORD_TYPE         VARCHAR(2) ENCODE RUNLENGTH,
+  SE_BUSINESS_DATE           DATE ENCODE ZSTD,
+  AMEX_PROCESS_DATE          DATE ENCODE ZSTD,
+  SOC_INVOICE_NUMBER         NUMERIC(6, 0) ENCODE ZSTD,
+  SOC_AMOUNT                 NUMERIC(18, 2) ENCODE ZSTD,
+  DISCOUNT_AMOUNT            NUMERIC(18, 2) ENCODE ZSTD,
+  SERVICE_FEE_AMOUNT         NUMERIC(18, 2) ENCODE ZSTD,
+  NET_SOC_AMOUNT             NUMERIC(18, 2) ENCODE ZSTD,
+  DISCOUNT_RATE              NUMERIC(6, 5) ENCODE ZSTD,
+  SERVICE_FEE_RATE           NUMERIC(6, 5) ENCODE ZSTD,
+  AMEX_GROSS_AMOUNT          NUMERIC(18, 2) ENCODE ZSTD,
+  AMEX_ROC_COUNT             NUMERIC(18) ENCODE ZSTD,
+  TRACKING_ID                NUMERIC(9, 0) ENCODE ZSTD,
+  CPC_INDICATOR              VARCHAR(1) ENCODE RUNLENGTH,
+  AMEX_ROC_COUNT_POA         NUMERIC(7, 0) ENCODE ZSTD,
+  FOREIGN KEY (PAYMENT_NUMBER) 
+     REFERENCES adhoc.american_express_eptrn_payment (PAYMENT_NUMBER)
+)
+  DISTSTYLE KEY;
 
-CREATE TABLE scratch.american_express_revenue_activity_summary_of_charge_detail
-				(
-				amex_payee_number NUMERIC NOT NULL,
-				amex_se_number NUMERIC NOT NULL,
-				se_unit_number VARCHAR(10),
-				payment_year NUMERIC NOT NULL,
-				payment_number VARCHAR(8) NOT NULL,
-				record_type INT NOT NULL,
-				detail_record_type INT NOT NULL,
-				se_business_date DATE NOT NULL,
-				amex_process_date DATE NOT NULL,
-				soc_invoice_number NUMERIC NOT NULL,
-				soc_amount DECIMAL NOT NULL,
-				discount_amount DECIMAL NOT NULL,
-				service_fee_amount DECIMAL NOT NULL,
-				net_soc_amount DECIMAL NOT NULL,
-				discount_rate DECIMAL DEFAULT 0.00000 NOT NULL,
-				service_fee_rate DECIMAL DEFAULT 0.00000 NOT NULL,
-				amex_gross_amount DECIMAL NOT NULL,
-				amex_roc_count INT NOT NULL ,
-				tracking_id NUMERIC NOT NULL,
-				cpc_indecator BOOLEAN,
-				amex_roc_count_poa INTEGER NOT NULL
-			    );
-COMMENT ON TABLE scratch.american_express_revenue_activity_summary_of_charge_detail IS 'EPTRN SOC Detail';
+CREATE TABLE IF NOT EXISTS 
+  adhoc.american_express_eptrn_record_of_charges (
+  AMEX_PAYEE_NUMBER          NUMERIC(18, 0) ENCODE ZSTD,
+  AMEX_SE_NUMBER             NUMERIC(18, 0) ENCODE ZSTD,
+  SE_UNIT_NUMBER             VARCHAR(10) ENCODE ZSTD,
+  PAYMENT_YEAR               NUMERIC(4, 0) ENCODE ZSTD,
+  PAYMENT_NUMBER             VARCHAR(8) DISTKEY ENCODE ZSTD,
+  RECORD_TYPE                VARCHAR(1) ENCODE RUNLENGTH,
+  DETAIL_RECORD_TYPE         VARCHAR(2) ENCODE RUNLENGTH,
+  SE_BUSINESS_DATE           DATE ENCODE ZSTD,
+  AMEX_PROCESS_DATE          DATE ENCODE ZSTD,
+  SOC_INVOICE_NUMBER         NUMERIC(6, 0) ENCODE ZSTD,
+  SOC_AMOUNT                 NUMERIC(18, 2) ENCODE ZSTD,
+  ROC_AMOUNT                 NUMERIC(18, 2) ENCODE ZSTD,
+  CM_NUMBER                  VARCHAR(19) ENCODE RUNLENGTH,
+  CM_REF_NO                  VARCHAR(11) ENCODE RUNLENGTH,
+  TRAN_DATE                  DATE ENCODE ZSTD,
+  SE_REF_POA                 VARCHAR(30) PRIMARY KEY,
+  NON_COMPLIANT_INDICATOR    VARCHAR(1) ENCODE RUNLENGTH,
+  NON_COMPLIANT_ERROR_CODE_1 VARCHAR(4) ENCODE RUNLENGTH,
+  NON_COMPLIANT_ERROR_CODE_2 VARCHAR(4) ENCODE RUNLENGTH,
+  NON_COMPLIANT_ERROR_CODE_3 VARCHAR(4) ENCODE RUNLENGTH,
+  NON_COMPLIANT_ERROR_CODE_4 VARCHAR(4) ENCODE RUNLENGTH,
+  NON_SWIPED_INDICATOR       VARCHAR(1) ENCODE RUNLENGTH,
+  CM_NUMBER_EXD              VARCHAR(19) ENCODE ZSTD,
+  FOREIGN KEY (PAYMENT_NUMBER) 
+     REFERENCES adhoc.american_express_eptrn_payment (PAYMENT_NUMBER)
+)
+  DISTSTYLE KEY;
 
+CREATE TABLE IF NOT EXISTS
+  adhoc.american_express_eptrn_adjustment(
+  AMEX_PAYEE_NUMBER          NUMERIC(18, 0) ENCODE ZSTD,
+  AMEX_SE_NUMBER             NUMERIC(18, 0) ENCODE ZSTD,
+  SE_UNIT_NUMBER             VARCHAR(10) ENCODE ZSTD,
+  PAYMENT_YEAR               NUMERIC(4, 0) ENCODE ZSTD,
+  PAYMENT_NUMBER             VARCHAR(8) DISTKEY ENCODE ZSTD,
+  RECORD_TYPE                VARCHAR(1) ENCODE RUNLENGTH,
+  DETAIL_RECORD_TYPE         VARCHAR(2) ENCODE RUNLENGTH,
+  AMEX_PROCESS_DATE          DATE ENCODE ZSTD SORTKEY ,
+  ADJUSTMENT_NUMBER          VARCHAR(6) ENCODE ZSTD PRIMARY KEY,
+  ADJUSTMENT_AMOUNT          NUMERIC(18, 2) ENCODE ZSTD,
+  DISCOUNT_AMOUNT            NUMERIC(18, 2) ENCODE ZSTD,
+  SERVICE_FEE_AMOUNT         NUMERIC(18, 2) ENCODE ZSTD,
+  NET_ADJUSTMENT_AMOUNT      NUMERIC(18, 2) ENCODE ZSTD,
+  DISCOUNT_RATE              NUMERIC(6, 5) ENCODE ZSTD,
+  SERVICE_FEE_RATE           NUMERIC(6, 5) ENCODE ZSTD,
+  CARDMEMBER_NUMBER          VARCHAR(19) ENCODE ZSTD ,
+  ADJUSTMENT_REASON          VARCHAR(230) ENCODE ZSTD,
+  FOREIGN KEY (PAYMENT_NUMBER)
+     REFERENCES adhoc.american_express_eptrn_payment (PAYMENT_NUMBER)
+)
+  DISTSTYLE KEY;
+  
 
 CREATE TABLE IF NOT EXISTS scratch.american_express_revenue_activity_chargeback_detail
 (

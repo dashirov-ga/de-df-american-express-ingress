@@ -7,69 +7,94 @@ import java.util.List;
  * Created by davidashirov on 12/7/17.
  */
 public class MerchantSubmission {
-    private SOCRecord socRecord;
-
-    private List<ROCRecord> rocRecords;
+    private SOCRecord summaryOfCharges;
+    private List<ROCRecord> recordsOfCharges;
+    private List<AdjustmentRecord> adjustments;
 
     public MerchantSubmission() {
-        rocRecords=new ArrayList<>();
+        recordsOfCharges=new ArrayList<>();
+        adjustments = new ArrayList<>();
 
+    }
+
+    public SOCRecord getSummaryOfCharges() {
+        return summaryOfCharges;
+    }
+
+    public List<ROCRecord> getRecordsOfCharges() {
+        return recordsOfCharges;
+    }
+
+    public List<AdjustmentRecord> getAdjustments() {
+        return adjustments;
     }
 
     public SOCRecord getSocRecord() {
-        return socRecord;
+        return summaryOfCharges;
     }
 
     public void setSocRecord(SOCRecord socRecord) {
-        this.socRecord = socRecord;
+        this.summaryOfCharges = socRecord;
     }
 
     public List<ROCRecord> getRocRecords() {
-        return rocRecords;
+        return recordsOfCharges;
     }
 
     public void setRocRecords(List<ROCRecord> rocRecords) {
-        this.rocRecords = rocRecords;
+        this.recordsOfCharges = rocRecords;
     }
 
+    public void put(SOCRecord summaryOfCharges){
+        this.summaryOfCharges = summaryOfCharges;
+    }
+    public void put(ROCRecord recordOfCharges) {
+        this.recordsOfCharges.add(recordOfCharges);
+    }
+    public void put(AdjustmentRecord adjustment){
+        this.adjustments.add(adjustment);
+    }
 
-    public static final class Builder {
-        private SOCRecord socRecord;
-        private List<AdjustmentRecord> adjustmentRecords;
-        private List<ROCRecord> rocRecords;
+    public static final class MerchantSubmissionBuilder {
+        private SOCRecord summaryOfCharges;
+        private List<ROCRecord> recordsOfCharges;
+        private List<AdjustmentRecord> adjustments;
 
-        private Builder() {
+        private MerchantSubmissionBuilder() {
+            this.adjustments = new ArrayList<>();
+            this.recordsOfCharges = new ArrayList<>();
+
         }
 
-        public static Builder aMerchantSubmission() {
-            return new Builder();
+        public static MerchantSubmissionBuilder aMerchantSubmission() {
+            return new MerchantSubmissionBuilder();
         }
 
-        public Builder withSocRecord(SOCRecord socRecord) {
-            this.socRecord = socRecord;
+        public MerchantSubmissionBuilder withSummaryOfCharges(SOCRecord summaryOfCharges) {
+            this.summaryOfCharges = summaryOfCharges;
             return this;
         }
 
-        public Builder withAdjustmentRecords(List<AdjustmentRecord> adjustmentRecords) {
-            this.adjustmentRecords = adjustmentRecords;
+        public MerchantSubmissionBuilder withRecordsOfCharges(List<ROCRecord> recordsOfCharges) {
+            this.recordsOfCharges = recordsOfCharges;
             return this;
         }
 
-        public Builder withRocRecords(List<ROCRecord> rocRecords) {
-            this.rocRecords = rocRecords;
+        public MerchantSubmissionBuilder withAdjustments(List<AdjustmentRecord> adjustments) {
+            this.adjustments = adjustments;
             return this;
-        }
-
-        public Builder but() {
-            return aMerchantSubmission().withSocRecord(socRecord).withAdjustmentRecords(adjustmentRecords).withRocRecords(rocRecords);
         }
 
         public MerchantSubmission build() {
             MerchantSubmission merchantSubmission = new MerchantSubmission();
-            merchantSubmission.setSocRecord(socRecord);
-            if (this.rocRecords==null)
-                this.rocRecords=new ArrayList<>();
-            merchantSubmission.setRocRecords(rocRecords);
+            if (this.recordsOfCharges == null)
+                this.recordsOfCharges=new ArrayList<>();
+            merchantSubmission.recordsOfCharges = this.recordsOfCharges;
+
+            merchantSubmission.summaryOfCharges = this.summaryOfCharges;
+            if (this.adjustments == null)
+                this.adjustments = new ArrayList<>();
+            merchantSubmission.adjustments = this.adjustments;
             return merchantSubmission;
         }
     }

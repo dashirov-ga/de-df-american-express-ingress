@@ -1,9 +1,7 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
-import com.ancientprogramming.fixedformat4j.annotation.Align;
-import com.ancientprogramming.fixedformat4j.annotation.Field;
-import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
-import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -14,13 +12,11 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -96,8 +92,8 @@ public class PaymentRecord {
     @JsonProperty("SETTLEMENT_AMOUNT")
     @Size(max = 15)
     @javax.validation.constraints.NotNull
-
     private BigDecimal settlementAmount;
+
     @JsonProperty("SE_BANK_SORT_CODE")
     @Size(max = 15)
     @javax.validation.constraints.NotNull
@@ -190,6 +186,7 @@ public class PaymentRecord {
     }
 
     @Field(offset = 41, length = 15, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    @FixedFormatDecimal(decimals = 2)
     public BigDecimal getSettlementAmount() {
         return settlementAmount;
     }
@@ -374,6 +371,7 @@ public class PaymentRecord {
         }
     }
 
+
     public UUID uniqueCode() {
         return UUID.nameUUIDFromBytes(
                 new StringBuilder()
@@ -402,6 +400,9 @@ public class PaymentRecord {
         );
     }
 
+    public PaymentRecord parse(FixedFormatManager manager, String line){
+        return manager.load(PaymentRecord.class,line);
+    }
     public static final class Builder {
         private String settlementSeAccountNumber;
         private String settlementAccountNameCode;

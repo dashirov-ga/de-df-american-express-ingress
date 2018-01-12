@@ -1,8 +1,5 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.FileHeaderRecord;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.FileTrailerRecord;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,33 +7,26 @@ import java.util.List;
  * Created by davidashirov on 12/7/17.
  */
 public class ReconciledPayment {
-    private PaymentRecord payment;
-    private PricingRecord pricingRecord;
-    private List<AdjustmentRecord> adjustments;
+    private Header header;
+    private PaymentRecord paymentSummary;
+    private PricingRecord pricingSummary;
     private List<MerchantSubmission> merchantSubmissions;
+    private Trailer trailer;
 
-    public List<AdjustmentRecord> getAdjustments() {
-        return adjustments;
+    public PaymentRecord getPaymentSummary() {
+        return paymentSummary;
     }
 
-    public void setAdjustments(List<AdjustmentRecord> adjustments) {
-        this.adjustments = adjustments;
+    public void setPaymentSummary(PaymentRecord paymentSummary) {
+        this.paymentSummary = paymentSummary;
     }
 
-    public PaymentRecord getPayment() {
-        return payment;
+    public PricingRecord getPricingSummary() {
+        return pricingSummary;
     }
 
-    public void setPayment(PaymentRecord payment) {
-        this.payment = payment;
-    }
-
-    public PricingRecord getPricingRecord() {
-        return pricingRecord;
-    }
-
-    public void setPricingRecord(PricingRecord pricingRecord) {
-        this.pricingRecord = pricingRecord;
+    public void setPricingSummary(PricingRecord pricingSummary) {
+        this.pricingSummary = pricingSummary;
     }
 
     public List<MerchantSubmission> getMerchantSubmissions() {
@@ -49,14 +39,45 @@ public class ReconciledPayment {
 
     public ReconciledPayment() {
         merchantSubmissions=new ArrayList<>();
-        adjustments = new ArrayList<>();
+
     }
 
+    public Header getHeader() {
+        return header;
+    }
+
+    public void setHeader(Header header) {
+        this.header = header;
+    }
+
+    public Trailer getTrailer() {
+        return trailer;
+    }
+
+    public void setTrailer(Trailer trailer) {
+        this.trailer = trailer;
+    }
+
+    public void put(MerchantSubmission submission){
+        merchantSubmissions.add(submission);
+    }
+
+    public void put(PricingRecord pricingRecord){
+        this.pricingSummary = pricingRecord;
+    }
+
+    public void put(PaymentRecord paymentSummary){
+        this.paymentSummary = paymentSummary;
+    }
+
+
+
     public static final class ReconciledPaymentBuilder {
-        private PaymentRecord payment;
-        private PricingRecord pricingRecord;
+        private Header header;
+        private PaymentRecord paymentSummary;
+        private PricingRecord pricingSummary;
         private List<MerchantSubmission> merchantSubmissions;
-        private List<AdjustmentRecord> adjustments;
+        private Trailer trailer;
 
         private ReconciledPaymentBuilder() {
         }
@@ -65,13 +86,18 @@ public class ReconciledPayment {
             return new ReconciledPaymentBuilder();
         }
 
-        public ReconciledPaymentBuilder withPayment(PaymentRecord payment) {
-            this.payment = payment;
+        public ReconciledPaymentBuilder withHeader(Header header) {
+            this.header = header;
             return this;
         }
 
-        public ReconciledPaymentBuilder withPricingRecord(PricingRecord pricingRecord) {
-            this.pricingRecord = pricingRecord;
+        public ReconciledPaymentBuilder withPaymentSummary(PaymentRecord paymentSummary) {
+            this.paymentSummary = paymentSummary;
+            return this;
+        }
+
+        public ReconciledPaymentBuilder withPricingSummary(PricingRecord pricingSummary) {
+            this.pricingSummary = pricingSummary;
             return this;
         }
 
@@ -80,24 +106,18 @@ public class ReconciledPayment {
             return this;
         }
 
-        public ReconciledPaymentBuilder withAdjustments(List<AdjustmentRecord> adjustments) {
-            this.adjustments = adjustments;
+        public ReconciledPaymentBuilder withTrailer(Trailer trailer) {
+            this.trailer = trailer;
             return this;
-        }
-
-        public ReconciledPaymentBuilder but() {
-            return aReconciledPayment().withPayment(payment).withPricingRecord(pricingRecord).withMerchantSubmissions(merchantSubmissions).withAdjustments(adjustments);
         }
 
         public ReconciledPayment build() {
             ReconciledPayment reconciledPayment = new ReconciledPayment();
-            reconciledPayment.setPayment(payment);
-            reconciledPayment.setPricingRecord(pricingRecord);
-            if (this.merchantSubmissions == null)
-                this.merchantSubmissions=new ArrayList<>();
-            if (this.adjustments == null)
-                this.adjustments = new ArrayList<>();
+            reconciledPayment.setPaymentSummary(paymentSummary);
+            reconciledPayment.setPricingSummary(pricingSummary);
             reconciledPayment.setMerchantSubmissions(merchantSubmissions);
+            reconciledPayment.header = this.header;
+            reconciledPayment.trailer = this.trailer;
             return reconciledPayment;
         }
     }

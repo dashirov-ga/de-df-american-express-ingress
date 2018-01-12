@@ -1,10 +1,12 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EMINQ;
 
 import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import javax.validation.constraints.Size;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -54,7 +56,7 @@ import java.util.Date;
         "SELLER_ID"
 })
 @Record
-public class InquiryDetailRecord {
+public class Detail {
     @JsonProperty("RECORD_TYPE")
     @Size(max = 1)
     @NotNull
@@ -523,4 +525,11 @@ public class InquiryDetailRecord {
     public void setSellerId(String sellerId) {
         this.sellerId = sellerId;
     }
+
+
+    public Detail parse(FixedFormatManager manager, String line){
+        return manager.load(Detail.class,line);
+    }
+
+
 }

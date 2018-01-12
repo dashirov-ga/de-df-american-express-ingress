@@ -4,6 +4,7 @@ import com.ancientprogramming.fixedformat4j.annotation.Align;
 import com.ancientprogramming.fixedformat4j.annotation.Field;
 import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
 import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -14,14 +15,11 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -65,7 +63,7 @@ public class SOCRecord {
 
     @JsonProperty("GENERATED_SOC_NUMBER")
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public String getSocId(){
+    public String getSocId() {
         return uniqueCode().toString();
     }
 
@@ -246,10 +244,10 @@ public class SOCRecord {
         this.recordSubCode = recordSubCode;
     }
 
-     // TODO: Uncmmment in production
-     // @FixedFormatPattern("yyyyMMdd")
-     // @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSocDate
-     public Date getSocDate() {
+
+    @FixedFormatPattern("yyyyMMdd")
+    @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSocDate
+    public Date getSocDate() {
         return socDate;
     }
 
@@ -414,33 +412,36 @@ public class SOCRecord {
     }
 
 
-
     public UUID uniqueCode() {
         return UUID.nameUUIDFromBytes(
                 new StringBuilder()
-                .append(settlementSeAccountNumber)
-                .append(settlementAccountNameCode)
-                .append(settlementDate)
-                .append(submissionSeAccountNumber)
-                .append(recordCode)
-                .append(recordSubCode)
-                .append(socDate)
-                .append(submissionCalculatedGrossAmount)
-                .append(submissionDeclaredGrossAmount)
-                .append(discountAmount)
-                .append(settlementNetAmount)
-                .append(serviceFeeRate)
-                .append(settlementGrossAmount)
-                .append(rocCalculatedCount)
-                .append(settlementTaxAmount)
-                .append(settlementTaxRate)
-                .append(submissionCurrencyCode)
-                .append(submissionNumber)
-                .append(submissionSeBranchNumber)
-                .append(submissionMethodCode)
-                .append(exchangeRate)
-                .toString().getBytes()
+                        .append(settlementSeAccountNumber)
+                        .append(settlementAccountNameCode)
+                        .append(settlementDate)
+                        .append(submissionSeAccountNumber)
+                        .append(recordCode)
+                        .append(recordSubCode)
+                        .append(socDate)
+                        .append(submissionCalculatedGrossAmount)
+                        .append(submissionDeclaredGrossAmount)
+                        .append(discountAmount)
+                        .append(settlementNetAmount)
+                        .append(serviceFeeRate)
+                        .append(settlementGrossAmount)
+                        .append(rocCalculatedCount)
+                        .append(settlementTaxAmount)
+                        .append(settlementTaxRate)
+                        .append(submissionCurrencyCode)
+                        .append(submissionNumber)
+                        .append(submissionSeBranchNumber)
+                        .append(submissionMethodCode)
+                        .append(exchangeRate)
+                        .toString().getBytes()
         );
+    }
+
+    public SOCRecord parse(FixedFormatManager manager, String line) {
+        return manager.load(SOCRecord.class, line);
     }
 
     public static final class Builder {

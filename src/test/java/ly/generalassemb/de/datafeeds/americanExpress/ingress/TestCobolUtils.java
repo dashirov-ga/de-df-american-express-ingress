@@ -7,13 +7,10 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.*;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.CsvUtil;
-import org.apache.commons.cli.ParseException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
 import java.util.*;
 
 /**
@@ -29,7 +26,7 @@ public class TestCobolUtils {
 
 
 
-
+ /**
     @Test
     public void testEPAPEParser(){
         List<EPAPEFile> fileProcessed = new ArrayList<>();
@@ -52,8 +49,8 @@ public class TestCobolUtils {
                String header_footer_indicator = line.substring(0, 5);
                if (aFile!=null && header_footer_indicator.equals("DFTLR")) {
                    LOGGER.debug(String.format("%03d Line is a Trailer Record. Stop reading from this file.",lineNo));
-                   FileTrailerRecord ftr;
-                   if ((ftr = manager.load(FileTrailerRecord.class, line)) != null) {
+                   Trailer ftr;
+                   if ((ftr = manager.load(Trailer.class, line)) != null) {
                        aFile.setTrailerRecord(ftr);
                        fileProcessed.add(aFile);
                    }
@@ -61,8 +58,8 @@ public class TestCobolUtils {
                    continue; // stop reading the data file after file trailer
                } else if (aFile == null && header_footer_indicator.equals("DFHDR")) {
                    LOGGER.debug(String.format("%03d Line is a Header Record. This is a new file. ",lineNo));
-                   FileHeaderRecord fhr;
-                   if ((fhr = manager.load(FileHeaderRecord.class, line)) != null)
+                   Header fhr;
+                   if ((fhr = manager.load(Header.class, line)) != null)
                        aFile = EPAPEFile.FileBuilder.aFile().withHeaderRecord(fhr).withPaymentList(new ArrayList<>()).build();
                    continue; // move onto the next line
                }
@@ -96,7 +93,7 @@ public class TestCobolUtils {
                            throw new ParseException("SOC Record must follow Payment Record, File Header Record");
                        }
                        ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
-                       soc.setPaymentId( currentPayment.getPayment().getPaymentId() );
+                       soc.setPaymentId( currentPayment.getPaymentSummary().getPaymentId() );
                        currentPayment.getMerchantSubmissions().add(
                                MerchantSubmission.Builder.aMerchantSubmission().withSocRecord(soc).build());
                    }
@@ -131,7 +128,7 @@ public class TestCobolUtils {
                        }
                        ReconciledPayment currentPayment = aFile.getPaymentList().get(aFile.getPaymentList().size() - 1);
 
-                       adj.setPaymentId(currentPayment.getPayment().getPaymentId());
+                       adj.setPaymentId(currentPayment.getPaymentSummary().getPaymentId());
                        currentPayment.getAdjustments().add(adj);
 
                    }
@@ -148,7 +145,7 @@ public class TestCobolUtils {
            List<AdjustmentRecord> a = new ArrayList<>();
             for ( EPAPEFile epapeFile: fileProcessed) {
                 for ( ReconciledPayment reconciledPayment : epapeFile.getPaymentList()) {
-                    p.add(reconciledPayment.getPayment());
+                    p.add(reconciledPayment.getPaymentSummary());
                     for ( MerchantSubmission submission  : reconciledPayment.getMerchantSubmissions()) {
                              s.add(submission.getSocRecord());
                              r.addAll(submission.getRocRecords());
@@ -164,7 +161,7 @@ public class TestCobolUtils {
            e.printStackTrace();
        }
     }
-
+ */
     @Test
     public void testAnnotations(){
         AdjustmentRecord b =
@@ -184,7 +181,5 @@ public class TestCobolUtils {
 
 
     }
-
-
 
 }

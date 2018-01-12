@@ -1,21 +1,17 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
-import com.ancientprogramming.fixedformat4j.annotation.Align;
-import com.ancientprogramming.fixedformat4j.annotation.Field;
-import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
-import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -273,6 +269,8 @@ public class AdjustmentRecord {
     }
 
     @Field(offset=191,length=15,align=Align.RIGHT,paddingChar = '0')
+    @FixedFormatNumber(sign = Sign.NOSIGN)
+    @FixedFormatDecimal(decimals = 0)
     public BigDecimal getCardMemberAccountNumber() {
         return cardMemberAccountNumber;
     }
@@ -354,6 +352,14 @@ public class AdjustmentRecord {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public AdjustmentRecord parse(FixedFormatManager manager, String line){
+        return manager.load(AdjustmentRecord.class,line);
+    }
+
+    public void put(MerchantSubmission submission){
+        submission.put(this);
     }
 
     public static final class Builder {
@@ -521,4 +527,6 @@ public class AdjustmentRecord {
             return adjustmentRecord;
         }
     }
+
+
 }

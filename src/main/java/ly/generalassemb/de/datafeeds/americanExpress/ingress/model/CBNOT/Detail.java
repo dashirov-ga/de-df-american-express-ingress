@@ -1,335 +1,181 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT;
 
+import com.ancientprogramming.fixedformat4j.annotation.*;
+import com.ancientprogramming.fixedformat4j.format.AbstractFixedFormatter;
+import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
+import com.ancientprogramming.fixedformat4j.format.FormatInstructions;
+import com.ancientprogramming.fixedformat4j.format.impl.StringFormatter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.SOCDetail;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.javamoney.moneta.format.MonetaryAmountDecimalFormatBuilder;
-import org.supercsv.cellprocessor.*;
-import org.supercsv.cellprocessor.constraint.NotNull;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.io.CsvBeanWriter;
-import org.supercsv.io.ICsvBeanWriter;
-import org.supercsv.prefs.CsvPreference;
-import org.supercsv.quote.AlwaysQuoteMode;
 
-import javax.money.Monetary;
-import javax.money.MonetaryAmount;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import javax.money.format.MonetaryAmountFormat;
-import javax.money.format.MonetaryFormats;
-import java.util.Currency;
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-/**
- * Created by dashirov on 5/12/17.
- */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Record(length = 2202)
+@JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.ALWAYS )
 @JsonPropertyOrder({
-        "dataFileRecordType",
-        "serviceEstablishmentNumber",
-        "cardMemberAccountNumber",
-        "currentCaseNumber",
-        "previousCaseNumber",
-        "resolution",
-        "adjustmentDate",
-        "chargeDate",
-        "caseType",
-        "locationNumber",
-        "chargebackReasonCode",
-        "chargebackAmount",
-        "chargebackAdjustmentNumber",
-        "chargebackResolutionAdjustmentNumber",
-        "chargebackReferenceCode",
-        "billedAmount",
-        "socAmount",
-        "socInvoiceNumber",
-        "rocInvoiceNumber",
-        "foreignAmount",
-        "foreignCurrency",
-        "supportToFollow",
-        "cardMemberName1",
-        "cardMemberName2v",
-        "cardMemberAddress1",
-        "cardMemberAddress2",
-        "cardMemberCityState",
-        "cardMemberZip",
-        "cardMemberFirstName1",
-        "cardMemberMiddleName1",
-        "cardMemberLastName1",
-        "cardMemberOriginalAccountNumber"
+
 })
 public class Detail {
-    public final static Pattern pattern = Pattern.compile("^(?<dataFileRecordType>D)(?<filler2>\\p{Space}{5})(?<serviceEstablishmentNumber>\\p{ASCII}{10})(?<filler4>\\p{Space}{10})(?<cardMemberAccountNumber>[\\p{Space}\\p{Alnum}]{19})(?<filler6>\\p{Space}{1})(?<currentCaseNumber>\\p{ASCII}{11})(?<currentActionNumber>\\p{ASCII}{2})(?<previousCaseNumber>\\p{ASCII}{11})(?<previousActionNumber>\\p{ASCII}{2})(?<resolution>[YN]{1})(?<fromSystem>[\\p{Space}FRSTXPG]{1})(?<rejectsToSystem>[\\p{Space}RSTXPG]{1})(?<disputesToSystem>[\\p{Space}RSTXPG]{1})(?<adjustmentDate>\\p{Digit}{8})(?<chargeDate>\\p{Digit}{8})(?<amexEmployeeId>\\p{ASCII}{7})(?<filler18>\\p{Space}{5})(?<caseType>\\p{ASCII}{6})(?<locationNumber>\\p{ASCII}{15})(?<chargebackReasonCode>\\p{Alnum}{3})(?<chargebackAmount>[\\{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<chargebackAdjustmentNumber>\\p{ASCII}{6})(?<chargebackResolutionAdjustmentNumber>\\p{ASCII}{6})(?<chargebackReferenceCode>\\p{ASCII}{12})(?<filler26>\\p{Space}{13})(?<billedAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socAmount>[\\p{Space}-]\\p{Digit}{13}\\.\\p{Digit}{2})(?<socInvoiceNumber>\\p{ASCII}{6})(?<rocInvoiceNumber>\\p{ASCII}{6})(?<foreignAmount>\\p{ASCII}{15})(?<foreignCurrency>\\p{Upper}{3})(?<supportToFollow>[YIRN]{1})(?<cardMemberName1>\\p{ASCII}{30})(?<cardMemberName2>\\p{ASCII}{30})(?<cardMemberAddress1>\\p{ASCII}{30})(?<cardMemberAddress2>\\p{ASCII}{30})(?<cardMemberCityState>\\p{ASCII}{30})(?<cardMemberZip>\\p{ASCII}{9})(?<cardMemberFirstName1>\\p{ASCII}{12})(?<cardMemberMiddleName1>\\p{ASCII}{12})(?<cardMemberLastName1>\\p{ASCII}{20})(?<cardMemberOriginalAccountNumber>\\p{ASCII}{15})(?<cardMemberOriginalName>\\p{ASCII}{30})(?<cardMemberOriginalFirstName>\\p{ASCII}{12})(?<cardMemberOriginalMiddleName>\\p{ASCII}{12})(?<cardMemberOriginalLastName>\\p{ASCII}{20})(?<note1>\\p{ASCII}{66})(?<note2>\\p{ASCII}{78})(?<note3>\\p{ASCII}{60})(?<note4>\\p{ASCII}{60})(?<note5>\\p{ASCII}{60})(?<note6>\\p{ASCII}{60})(?<note7>\\p{ASCII}{60})(?<triumphSequenceNumber>\\p{ASCII}{2})(?<filler56>\\p{Space}{20})(?<filler57>\\p{Space}{15})(?<filler58>\\p{Space}{10})(?<industrySpecificPayload>\\p{ASCII}{1172})");
-    private final static DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private static final MonetaryAmountFormat defaultFormat = MonetaryFormats.getAmountFormat(Locale.US);
-    private static final DecimalFormat decimalFormat = new DecimalFormat();
-    /**
-     * dataFileRecordType
-     * This field contains the constant literal “D”, a record type code that indicates that this is a
-     * Chargeback Notifications (CBNOT) File Detail Record. This field must appear as the first item in the record.
-     */
-    @JsonProperty
-    private String dataFileRecordType;
-
-    /**
-     * serviceEstablishmentNumber
-     * This field contains the Service Establishment (SE) Number that STARS* searches for and routes data to, based
-     * on the setup for the corresponding CBNOT data type (for outbound data).
-     */
-    @JsonProperty
-    private String serviceEstablishmentNumber;
-
-    @JsonProperty
-    private String cardMemberAccountNumber;
-
-    /**
-     * FINCAP transactions — This field contains the FINCAP Tracking ID. See FINCAP_TRACKING_ID on page 54.
-     *  Non-FINCAP transactions — This field contains the unique, American Express-assigned, current case
-     * (identification) number for this transaction, if this is a chargeback notification or final resolution.
-     * Notes:
-     * 1. For Customer Service Systems, this field is composed of:
-     * Subfield Name      Length     Position
-     * CSS_CASE_NUMBER    7 bytes     47-53
-     * FILLER‡            4 bytes     54-57
-     * 2. For SIREN/SOFA, this field is composed of:
-     * Subfield Name     Length     Position
-     * SS_CASE_NUMBER     9 bytes     47-55
-     * FILLER‡            2 bytes     56-57
-     * <p>
-     * * As defined for Customer Service Systems.
-     * † As defined for SIREN/SOFA System. SIREN = SE Information Retrieval Entry Network. SOFA = SE Online Financial
-     * Adjustment. A case processing system that contains unconverted Service Establishment dispute
-     * case information and the interfacing financial adjustment system.
-     * ‡ FILLER subfields are character space filled.
-     * <p>
-     * TODO: Additional processing may be required to determine field value class
-     */
-    @JsonProperty
-    private String currentCaseNumber;
-
-    /**
-     * This field contains a case number from various sources, or is blank (character space filled),
-     * depending on the specific details of this record.
-     */
-    @JsonProperty
-    private String previousCaseNumber;
-
-    /**
-     * This field contains a code that indicates if this record is a Resolution Letter:
-     * Y = Yes N = No
-     * Note: If this value is “Y”, then Field 24 CB_RESOLUTION_ ADJ_NUMBER should be populated.
-     */
-    @JsonProperty
-    private Resolution resolution; // Y=YES, N=NO
-
-    /**
-     * This field contains the date of the adjustment.
-     */
-    @JsonProperty
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "America/New_York")
-    private Date adjustmentDate;
-
-    /**
-     * This field contains the date of the charge.
-     */
-    @JsonProperty
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "America/New_York")
-    private Date chargeDate;
-
-    /**
-     * AIRDS = Airline Credit Requested
-     * AIRLT = Airline Lost/Stolen Ticket
-     * AIRRT = Airline Returned Ticket
-     * AIRTB = Airline Support of Charge
-     * AREXS = Reservation/Cancellation
-     * CARRD = CarRental
-     * GSDIS = Goods/Services
-     * NAXMG = Merchandise Not Received
-     * NAXMR = Merchandise Returned
-     * SEDIS = GeneralDispute
-     * FRAUD = Fraud Dispute
-     * CRCDW = Collision Damage Waiver Liability
-     */
-    @JsonProperty
-    private CaseType caseType;
-
-    /**
-     * This field may contain the store or location number where the charge occurred.
-     * Also, refer to Field 99, LOC_REF_NUMBER.
-     */
-    @JsonProperty
-    private String locationNumber;
-
-
-    /**
-     * This field contains a three-character, chargeback reason code.
-     */
-    @JsonProperty
-    private ChargebackReasonCode chargebackReasonCode;
-
-
-    /**
-     * This field contains the adjustment or chargeback amount, which can be a debit or credit. The format for this
-     * field is a one-digit “sign,” followed by a 13-digit “dollar amount” (right justified and zero filled),
-     * one-digit “decimal point,” and two-digit “cents.”
-     */
-    @JsonProperty
-    @JsonSerialize(using = MonetaryAmountSerializer.class)
-    private MonetaryAmount chargebackAmount;
-
-    @JsonProperty
-    private String chargebackAdjustmentNumber;
-
-
-    @JsonProperty
-    String chargebackResolutionAdjustmentNumber;
-
-    @JsonProperty
-    private String chargebackReferenceCode;
-
-    @JsonProperty
-    @JsonSerialize(using = MonetaryAmountSerializer.class)
-    private MonetaryAmount billedAmount;
-
-    @JsonProperty
-    @JsonSerialize(using = MonetaryAmountSerializer.class)
-    private MonetaryAmount socAmount;
-
-    @JsonProperty
-    private String socInvoiceNumber;
-
-    @JsonProperty
-    private String rocInvoiceNumber;
-
-    @JsonProperty
-    @JsonSerialize(using = MonetaryAmountSerializer.class)
-    private MonetaryAmount foreignAmount;
-
-    @JsonProperty
-    private Currency foreignCurrency;
-
-    @JsonProperty
-    private SupportToFollow supportToFollow;
-
-    @JsonProperty
-    private String cardMemberName1;
-
-    @JsonProperty
-    private String cardMemberName2;
-
-    @JsonProperty
-    private String cardMemberAddress1;
-
-    @JsonProperty
-    private String cardMemberAddress2;
-
-    @JsonProperty
-    private String cardMemberCityState;
-
-    @JsonProperty
-    private String cardMemberZip;
-
-    @JsonProperty
-    private String cardMemberFirstName1;
-
-    @JsonProperty
-    private String cardMemberMiddleName1;
-
-    @JsonProperty
-    private String cardMemberLastName1;
-
-    @JsonProperty
-    private String cardMemberOriginalAccountNumber;
-
-
-    public Detail() {
-
+    @JsonProperty("REC_TYPE")
+    @NotNull
+    private String recordType;
+    @Field(offset = 1, length = 1)
+    public String getRecordType() {
+        return recordType;
+    }
+    public void setRecordType(String recordType) {
+        this.recordType = recordType;
     }
 
-
-    public String getDataFileRecordType() {
-        return dataFileRecordType;
-    }
-
-    public void setDataFileRecordType(String dataFileRecordType) {
-        this.dataFileRecordType = dataFileRecordType;
-    }
-
-    public String getServiceEstablishmentNumber() {
+    @JsonProperty("SE_NUMB")
+    @NotNull
+    private BigDecimal serviceEstablishmentNumber;
+    @Field(offset = 7, length = 10)
+    @FixedFormatDecimal(decimals = 0)
+    public BigDecimal getServiceEstablishmentNumber() {
         return serviceEstablishmentNumber;
     }
-
-    public void setServiceEstablishmentNumber(String serviceEstablishmentNumber) {
+    public void setServiceEstablishmentNumber(BigDecimal serviceEstablishmentNumber) {
         this.serviceEstablishmentNumber = serviceEstablishmentNumber;
     }
-
-    public String getCardMemberAccountNumber() {
-        return cardMemberAccountNumber;
+    @JsonProperty("CM_ACCT_NUMB")
+    @NotNull
+    private String cardmemberAccountNumber;
+    @Field(offset = 27, length = 19)
+    public String getCardmemberAccountNumber() {
+        return cardmemberAccountNumber;
+    }
+    public void setCardmemberAccountNumber(String cardmemberAccountNumber) {
+        this.cardmemberAccountNumber = cardmemberAccountNumber;
     }
 
-    public void setCardMemberAccountNumber(String cardMemberAccountNumber) {
-        this.cardMemberAccountNumber = cardMemberAccountNumber;
-    }
 
+    @JsonProperty("CURRENT_CASE_NUMBER")
+    @NotNull
+    private String currentCaseNumber;
+    @Field(offset = 47, length = 11, align = Align.LEFT, paddingChar = ' ')
     public String getCurrentCaseNumber() {
         return currentCaseNumber;
     }
-
     public void setCurrentCaseNumber(String currentCaseNumber) {
         this.currentCaseNumber = currentCaseNumber;
     }
 
+    @JsonProperty("CURRENT_ACTION_NUMBER")
+    private String currentActionNumber;
+    @Field(offset = 58, length=2)
+    public String getCurrentActionNumber() {
+        return currentActionNumber;
+    }
+    public void setCurrentActionNumber(String currentActionNumber) {
+        this.currentActionNumber = currentActionNumber;
+    }
+    @JsonProperty("PREVIOUS_CASE_NUMBER")
+    private String previousCaseNumber;
+    @Field(offset = 60, length=11)
     public String getPreviousCaseNumber() {
         return previousCaseNumber;
     }
-
     public void setPreviousCaseNumber(String previousCaseNumber) {
         this.previousCaseNumber = previousCaseNumber;
     }
+    @JsonProperty("PREVIOUS_ACTION_NUMBER")
+    private String previousActionNumber;
 
-    public Resolution getResolution() {
-        return resolution;
+    @Field(offset = 71, length = 2)
+    public String getPreviousActionNumber() {
+        return previousActionNumber;
     }
 
-    public void setResolution(Resolution resolution) {
+    public void setPreviousActionNumber(String previousActionNumber) {
+        this.previousActionNumber = previousActionNumber;
+    }
+
+    @JsonProperty("RESOLUTION")
+    private String resolution;
+    @Field(offset = 73, length = 1)
+    public String getResolution() {
+        return resolution;
+    }
+    public void setResolution(String resolution) {
         this.resolution = resolution;
     }
 
-    public Date getAdjustmentDate() {
-        return adjustmentDate;
+    @JsonProperty("FROM_SYSTEM")
+    private String fromSystem;
+    @Field(offset = 74, length = 1)
+    public String getFromSystem() {
+        return fromSystem;
+    }
+    public void setFromSystem(String fromSystem) {
+        this.fromSystem = fromSystem;
     }
 
-    public void setAdjustmentDate(Date adjustmentDate) {
-        this.adjustmentDate = adjustmentDate;
+    @JsonProperty("REJECTS_TO_SYSTEM")
+    private String rejectsToSystem;
+    @Field(offset = 71, length=1)
+    public String getRejectsToSystem() {
+        return rejectsToSystem;
+    }
+    public void setRejectsToSystem(String rejectsToSystem) {
+        this.rejectsToSystem = rejectsToSystem;
     }
 
-    public Date getChargeDate() {
-        return chargeDate;
+    @JsonProperty("DISPUTES_TO_SYSTEM")
+    private String disputesToSystem;
+
+    @Field(offset = 76, length = 1)
+    public String getDisputesToSystem() {
+        return disputesToSystem;
+    }
+    public void setDisputesToSystem(String disputesToSystem) {
+        this.disputesToSystem = disputesToSystem;
     }
 
-    public void setChargeDate(Date chargeDate) {
-        this.chargeDate = chargeDate;
+
+    @JsonProperty("DATE_OF_ADJUSTMENT")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "America/New_York") // keep timezone to avoid shifts
+    private Date dateOfAdjustment;
+
+    @Field(offset=77, length = 8)
+    @FixedFormatPattern("yyyyMMdd")
+    public Date getDateOfAdjustment() {
+        return dateOfAdjustment;
+    }
+    public void setDateOfAdjustment(Date dateOfAdjustment) {
+        this.dateOfAdjustment = dateOfAdjustment;
     }
 
+    @JsonProperty("DATE_OF_CHARGE")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "America/New_York"  ) // keep timezone to avoid shifts
+    private Date dateOfCharge;
+    @Field(offset=85, length = 8)
+    @FixedFormatPattern("yyyyMMdd")
+    public Date getDateOfCharge() {
+        return dateOfCharge;
+    }
+    public void setDateOfCharge(Date dateOfCharge) {
+        this.dateOfCharge = dateOfCharge;
+    }
+
+    @JsonProperty("AMEX_ID")
+    private String amexId;
+    @Field(offset = 93, length = 7)
+    public String getAmexId() {
+        return amexId;
+    }
+
+    public void setAmexId(String amexId) {
+        this.amexId = amexId;
+    }
+
+    @JsonProperty("CASE_TYPE")
+    private CaseType caseType;
+    @Field(offset = 105, length = 6, align = Align.LEFT, paddingChar = ' ', formatter = CaseTypeFormatter.class)
     public CaseType getCaseType() {
         return caseType;
     }
@@ -338,6 +184,9 @@ public class Detail {
         this.caseType = caseType;
     }
 
+    @JsonProperty("LOC_NUMB")
+    private String locationNumber;
+    @Field(offset = 111, length = 15)
     public String getLocationNumber() {
         return locationNumber;
     }
@@ -346,6 +195,9 @@ public class Detail {
         this.locationNumber = locationNumber;
     }
 
+    @JsonProperty("CB_REAS_CODE")
+    private ChargebackReasonCode chargebackReasonCode;
+    @Field(offset = 126,length = 3,formatter = ChargebackReasonCodeFormatter.class)
     public ChargebackReasonCode getChargebackReasonCode() {
         return chargebackReasonCode;
     }
@@ -354,183 +206,367 @@ public class Detail {
         this.chargebackReasonCode = chargebackReasonCode;
     }
 
-    public MonetaryAmount getChargebackAmount() {
+    @JsonProperty("CB_AMOUNT")
+    private BigDecimal chargebackAmount;
+    @FixedFormatDecimal(decimals = 2, useDecimalDelimiter = true, decimalDelimiter = '.')
+    @FixedFormatNumber(sign = Sign.PREPEND, positiveSign = ' ', negativeSign = '-')
+    @Field(offset = 129, length = 17)
+    public BigDecimal getChargebackAmount() {
         return chargebackAmount;
     }
-
-    public void setChargebackAmount(MonetaryAmount chargebackAmount) {
+    public void setChargebackAmount(BigDecimal chargebackAmount) {
         this.chargebackAmount = chargebackAmount;
     }
 
+    @JsonProperty("CB_ADJUSTMENT_NUMBER")
+    private String chargebackAdjustmentNumber;
+    @Field(offset = 146, length = 6)
     public String getChargebackAdjustmentNumber() {
         return chargebackAdjustmentNumber;
     }
-
     public void setChargebackAdjustmentNumber(String chargebackAdjustmentNumber) {
         this.chargebackAdjustmentNumber = chargebackAdjustmentNumber;
     }
 
+    @JsonProperty("CB_RESOLUTION_ADJ_NUMBER")
+    private String chargebackResolutionAdjustmentNumber;
+    @Field(offset = 152, length = 6)
     public String getChargebackResolutionAdjustmentNumber() {
         return chargebackResolutionAdjustmentNumber;
     }
-
     public void setChargebackResolutionAdjustmentNumber(String chargebackResolutionAdjustmentNumber) {
         this.chargebackResolutionAdjustmentNumber = chargebackResolutionAdjustmentNumber;
     }
 
+    @JsonProperty("CB_REFERENCE_CODE")
+    private String chargebackReferenceCode;
+    @Field(offset = 158, length = 12)
     public String getChargebackReferenceCode() {
         return chargebackReferenceCode;
     }
-
     public void setChargebackReferenceCode(String chargebackReferenceCode) {
         this.chargebackReferenceCode = chargebackReferenceCode;
     }
 
-    public MonetaryAmount getBilledAmount() {
+    @JsonProperty("BILLED_AMOUNT")
+    private BigDecimal billedAmount;
+    @Field(offset = 183, length = 17, align = Align.RIGHT, paddingChar = '0')
+    @FixedFormatDecimal(decimals = 2, useDecimalDelimiter = true, decimalDelimiter = '.')
+    @FixedFormatNumber(sign = Sign.PREPEND, positiveSign = ' ', negativeSign = '-')
+    public BigDecimal getBilledAmount() {
         return billedAmount;
     }
-
-    public void setBilledAmount(MonetaryAmount billedAmount) {
+    public void setBilledAmount(BigDecimal billedAmount) {
         this.billedAmount = billedAmount;
     }
 
-    public MonetaryAmount getSocAmount() {
+    @JsonProperty("SOC_AMOUNT")
+    private BigDecimal socAmount;
+    @Field(offset = 200, length = 17, align = Align.RIGHT, paddingChar = '0')
+    @FixedFormatDecimal(decimals = 2, useDecimalDelimiter = true, decimalDelimiter = '.')
+    @FixedFormatNumber(sign = Sign.PREPEND, positiveSign = ' ', negativeSign = '-')
+    public BigDecimal getSocAmount() {
         return socAmount;
     }
-
-    public void setSocAmount(MonetaryAmount socAmount) {
+    public void setSocAmount(BigDecimal socAmount) {
         this.socAmount = socAmount;
     }
 
-    public String getSocInvoiceNumber() {
-        return socInvoiceNumber;
+    @JsonProperty("SOC_INVOICE_NUMBER")
+    private String socInvoiceNumner;
+    @Field(offset = 217, length = 6)
+    public String getSocInvoiceNumner() {
+        return socInvoiceNumner;
+    }
+    public void setSocInvoiceNumner(String socInvoiceNumner) {
+        this.socInvoiceNumner = socInvoiceNumner;
     }
 
-    public void setSocInvoiceNumber(String socInvoiceNumber) {
-        this.socInvoiceNumber = socInvoiceNumber;
+    @JsonProperty("ROC_INVOICE_NUMBER")
+    private String rocInvoiceNumner;
+    @Field(offset = 223, length = 6)
+    public String getRocInvoiceNumner() {
+        return rocInvoiceNumner;
+    }
+    public void setRocInvoiceNumner(String rocInvoiceNumner) {
+        this.rocInvoiceNumner = rocInvoiceNumner;
     }
 
-    public String getRocInvoiceNumber() {
-        return rocInvoiceNumber;
-    }
-
-    public void setRocInvoiceNumber(String rocInvoiceNumber) {
-        this.rocInvoiceNumber = rocInvoiceNumber;
-    }
-
-    public MonetaryAmount getForeignAmount() {
+    @JsonProperty("FOREIGN_AMT")
+    private BigDecimal foreignAmount;
+    @Field(offset = 229, length = 15)
+    @FixedFormatDecimal(decimals = 2, useDecimalDelimiter = true, decimalDelimiter = '.')
+    @FixedFormatNumber(sign = Sign.PREPEND, positiveSign = ' ', negativeSign = '-')
+    public BigDecimal getForeignAmount() {
         return foreignAmount;
     }
-
-    public void setForeignAmount(MonetaryAmount foreignAmount) {
+    public void setForeignAmount(BigDecimal foreignAmount) {
         this.foreignAmount = foreignAmount;
     }
 
-    public Currency getForeignCurrency() {
-        return foreignCurrency;
+    @JsonProperty("CURRENCY")
+    private String currency;
+    @Field(offset = 244, length = 3)
+    public String getCurrency() {
+        return currency;
+    }
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
-    public void setForeignCurrency(Currency foreignCurrency) {
-        this.foreignCurrency = foreignCurrency;
-    }
-
+    @JsonProperty("SUPP_TO_FOLLOW")
+    private SupportToFollow supportToFollow;
+    @Field(offset = 247, length = 1, formatter = SupportToFollowFormatter.class)
     public SupportToFollow getSupportToFollow() {
         return supportToFollow;
     }
-
     public void setSupportToFollow(SupportToFollow supportToFollow) {
         this.supportToFollow = supportToFollow;
     }
 
-    public String getCardMemberName1() {
-        return cardMemberName1;
+    @JsonProperty("CM_NAME1")
+    private String cardmemberName1;
+    @Field(offset = 248, length = 30)
+    public String getCardmemberName1() {
+        return cardmemberName1;
+    }
+    public void setCardmemberName1(String cardmemberName1) {
+        this.cardmemberName1 = cardmemberName1;
     }
 
-    public void setCardMemberName1(String cardMemberName1) {
-        this.cardMemberName1 = cardMemberName1;
+    @JsonProperty("CM_NAME2")
+    private String cardmemberName2;
+    @Field(offset = 278, length = 30)
+    public String getCardmemberName2() {
+        return cardmemberName2;
+    }
+    public void setCardmemberName2(String cardmemberName2) {
+        this.cardmemberName2 = cardmemberName2;
     }
 
-    public String getCardMemberName2() {
-        return cardMemberName2;
+    @JsonProperty("CM_ADDR1")
+    private String cardmemberAddress1;
+    @Field(offset = 308, length = 30)
+    public String getCardmemberAddress1() {
+        return cardmemberAddress1;
     }
 
-    public void setCardMemberName2(String cardMemberName2) {
-        this.cardMemberName2 = cardMemberName2;
+    public void setCardmemberAddress1(String cardmemberAddress1) {
+        this.cardmemberAddress1 = cardmemberAddress1;
     }
 
-    public String getCardMemberAddress1() {
-        return cardMemberAddress1;
+    @JsonProperty("CM_ADDR2")
+    private String cardmemberAddress2;
+    @Field(offset = 338, length = 30)
+    public String getCardmemberAddress2() {
+        return cardmemberAddress2;
     }
 
-    public void setCardMemberAddress1(String cardMemberAddress1) {
-        this.cardMemberAddress1 = cardMemberAddress1;
+    public void setCardmemberAddress2(String cardmemberAddress2) {
+        this.cardmemberAddress2 = cardmemberAddress2;
     }
 
-    public String getCardMemberAddress2() {
-        return cardMemberAddress2;
+    @JsonProperty("CM_CITY_STATE")
+    private String cardmemberCityState;
+    @Field(offset = 368, length = 30)
+    public String getCardmemberCityState() {
+        return cardmemberCityState;
+    }
+    public void setCardmemberCityState(String cardmemberCityState) {
+        this.cardmemberCityState = cardmemberCityState;
     }
 
-    public void setCardMemberAddress2(String cardMemberAddress2) {
-        this.cardMemberAddress2 = cardMemberAddress2;
+    @JsonProperty("CM_ZIP")
+    private String cardmemberZip;
+    @Field(offset = 398, length = 9)
+    public String getCardmemberZip() {
+        return cardmemberZip;
+    }
+    public void setCardmemberZip(String cardmemberZip) {
+        this.cardmemberZip = cardmemberZip;
     }
 
-    public String getCardMemberCityState() {
-        return cardMemberCityState;
+    @JsonProperty("CM_FIRST_NAME_1")
+    private String cardmemberFirstName1;
+    @Field(offset = 407, length = 12)
+    public String getCardmemberFirstName1() {
+        return cardmemberFirstName1;
+    }
+    public void setCardmemberFirstName1(String cardmemberFirstName1) {
+        this.cardmemberFirstName1 = cardmemberFirstName1;
     }
 
-    public void setCardMemberCityState(String cardMemberCityState) {
-        this.cardMemberCityState = cardMemberCityState;
+    @JsonProperty("CM_MIDDLE_NAME_1")
+    private String cardmemberMiddleName1;
+    @Field(offset = 419, length = 12)
+    public String getCardmemberMiddleName1() {
+        return cardmemberMiddleName1;
+    }
+    public void setCardmemberMiddleName1(String cardmemberMiddleName1) {
+        this.cardmemberMiddleName1 = cardmemberMiddleName1;
     }
 
-    public String getCardMemberZip() {
-        return cardMemberZip;
+    @JsonProperty("CM_LAST_NAME_1")
+    private String cardmemberLastName1;
+    @Field(offset = 431, length = 20)
+    public String getCardmemberLastName1() {
+        return cardmemberLastName1;
+    }
+    public void setCardmemberLastName1(String cardmemberLastName1) {
+        this.cardmemberLastName1 = cardmemberLastName1;
     }
 
-    public void setCardMemberZip(String cardMemberZip) {
-        this.cardMemberZip = cardMemberZip;
+    @JsonProperty("CM_ORIG_ACCT_NUM")
+    private String cardmemberOriginalAccountNumber;
+    @Field(offset = 451, length = 15)
+    public String getCardmemberOriginalAccountNumber() {
+        return cardmemberOriginalAccountNumber;
+    }
+    public void setCardmemberOriginalAccountNumber(String cardmemberOriginalAccountNumber) {
+        this.cardmemberOriginalAccountNumber = cardmemberOriginalAccountNumber;
     }
 
-    public String getCardMemberFirstName1() {
-        return cardMemberFirstName1;
+    @JsonProperty("CM_ORIG_NAME")
+    public String cardmemberOriginalName;
+    @Field(offset = 466, length = 30 )
+    public String getCardmemberOriginalName() {
+        return cardmemberOriginalName;
+    }
+    public void setCardmemberOriginalName(String cardmemberOriginalName) {
+        this.cardmemberOriginalName = cardmemberOriginalName;
     }
 
-    public void setCardMemberFirstName1(String cardMemberFirstName1) {
-        this.cardMemberFirstName1 = cardMemberFirstName1;
+    @JsonProperty("CM_ORIG_FIRST_NAME")
+    private String cardmemberOriginalFirstName;
+    @Field(offset = 496, length = 12)
+    public String getcardmemberOriginalFirstName() {
+        return cardmemberOriginalFirstName;
+    }
+    public void setcardmemberOriginalFirstName(String cardmemberOriginalFirstName) {
+        this.cardmemberOriginalFirstName = cardmemberOriginalFirstName;
     }
 
-    public String getCardMemberMiddleName1() {
-        return cardMemberMiddleName1;
+    @JsonProperty("CM_ORIG_MIDDLE_NAME")
+    private String cardmemberOriginalMiddleName;
+    @Field(offset = 508, length = 12)
+    public String getcardmemberOriginalMiddleName() {
+        return cardmemberOriginalMiddleName;
+    }
+    public void setcardmemberOriginalMiddleName(String cardmemberOriginalMiddleName) {
+        this.cardmemberOriginalMiddleName = cardmemberOriginalMiddleName;
     }
 
-    public void setCardMemberMiddleName1(String cardMemberMiddleName1) {
-        this.cardMemberMiddleName1 = cardMemberMiddleName1;
+    @JsonProperty("CM_ORIG_LAST_NAME")
+    private String cardmemberOriginalLastName;
+    @Field(offset = 520, length = 20)
+    public String getcardmemberOriginalLastName() {
+        return cardmemberOriginalLastName;
+    }
+    public void setcardmemberOriginalLastName(String cardmemberOriginalLastName) {
+        this.cardmemberOriginalLastName = cardmemberOriginalLastName;
     }
 
-    public String getCardMemberLastName1() {
-        return cardMemberLastName1;
-    }
+    /**
+            TODO: ADD FIELDS BELOW
+            
+            45 CM_ORIG_FIRST_NAME 12 bytes Alphanumeric 496-507 43
+            46 CM_ORIG_MIDDLE_NAME 12 bytes Alphanumeric 508-519 43
+            47 CM_ORIG_LAST_NAME 20 bytes Alphanumeric 520-539 44
+            48 NOTE1 66 bytes Alphanumeric 540-605 44
+            49 NOTE2 78 bytes Alphanumeric 606-683 45
+            50 NOTE3 60 bytes Alphanumeric 684-743 45
+            51 NOTE4 60 bytes Alphanumeric 744-803 46
+            52 NOTE5 60 bytes Alphanumeric 804-863 46
+            53 NOTE6 60 bytes Alphanumeric 864-923 47
+            54 NOTE7 60 bytes Alphanumeric 924-983 47
+            55 TRIUMPH_SEQ_NO 2 bytes Alphanumeric 984-985 48
+            59 AIRLINE_TKT_NUM 14 bytes Alphanumeric 1031-1044 50
+            60 AL_SEQUENCE_NUMBER 2 bytes Alphanumeric 1045-1046 50
+            61 FOLIO_REF 18 bytes Alphanumeric 1047-1064 51
+            62 MERCH_ORDER_NUM 10 bytes Alphanumeric 1065-1074 51
+            63 MERCH_ORDER_DATE 8 bytes Alphanumeric 1075-1082 52
+            64 CANC_NUM 20 bytes Alphanumeric 1083-1102 52
+            65 CANC_DATE 8 bytes Alphanumeric 1103-1110 53
+            66 FINCAP_TRACKING_ID 11 bytes Alphanumeric 1111-1121 54
+            67 FINCAP_FILE_SEQ_NUM 6 bytes Alphanumeric 1122-1127 55
+            68 FINCAP_BATCH_NUMBER 4 bytes Alphanumeric 1128-1131 55
+            69 FINCAP_BATCH_INVOICE_DT 8 bytes Alphanumeric 1132-1139 56
+            70 LABEL1 25 bytes Alphanumeric 1140-1164 57
+            71 DATA1 25 bytes Alphanumeric 1165-1189 57
+            72 LABEL2 25 bytes Alphanumeric 1190-1214 58
+            73 DATA2 25 bytes Alphanumeric 1215-1239 58
+            74 LABEL3 25 bytes Alphanumeric 1240-1264 59
+            75 DATA3 25 bytes Alphanumeric 1265-1289 59
+            76 LABEL4 25 bytes Alphanumeric 1290-1314 60
+            77 DATA4 25 bytes Alphanumeric 1315-1339 60
+            78 LABEL5 25 bytes Alphanumeric 1340-1364 61
+            79 DATA5 25 bytes Alphanumeric 1365-1389 61
+            80 LABEL6 25 bytes Alphanumeric 1390-1414 62
+            81 DATA6 25 bytes Alphanumeric 1415-1439 62
+            82 LABEL7 25 bytes Alphanumeric 1440-1464 63
+            83 DATA7 25 bytes Alphanumeric 1465-1489 63
+            84 LABEL8 25 bytes Alphanumeric 1490-1514 64
+            85 DATA8 25 bytes Alphanumeric 1515-1539 64
+            86 LABEL9 25 bytes Alphanumeric 1540-1564 65
+            87 DATA9 25 bytes Alphanumeric 1565-1589 65
+            88 LABEL10 25 bytes Alphanumeric 1590-1614 66
+            89 DATA10 25 bytes Alphanumeric 1615-1639 66
+            90 LABEL11 25 bytes Alphanumeric 1640-1664 67
+            91 DATA11 25 bytes Alphanumeric 1665-1689 67
+            92 CM_ACCNT_NUMB_EXD 19 bytes Alphanumeric 1690-1708 68
+            94 CASE_NUMBER_EXD 16 bytes Alphanumeric 1715-1730 69
+            96 IND_FORM_CODE 2 bytes Alphanumeric 1766-1767 70
+            97 IND_REF_NUMBER 30 bytes Alphanumeric 1768-1797 71
+            99 LOC_REF_NUMBER 15 bytes Alphanumeric 1801-1815 72
+            100 PASSENGER_NAME 20 bytes Alphanumeric 1816-1835 72
+            101 PASSENGER_FIRST_NAME 12 bytes Alphanumeric 1836-1847 72
+            102 PASSENGER_MIDDLE_NAME 12 bytes Alphanumeric 1848-1859 72
+            103 PASSENGER_LAST_NAME 20 bytes Alphanumeric 1860-1879 74
+            104 SE_PROCESS_DATE 3 bytes Alphanumeric 1880-1882 74
+            105 RETURN_DATE 6 bytes Alphanumeric 1883-1888 75
+            106 CREDIT_RECEIPT_NUMBER 15 bytes Alphanumeric 1889-1903 75
+            107 RETURN_TO_NAME 24 bytes Alphanumeric 1904-1927 76
+            108 RETURN_TO_STREET 17 bytes Alphanumeric 1928-1944 76
+            109 CARD_DEPOSIT 1 byte Alphanumeric 1945 77
+            110 ASSURED_RESERVATION 1 byte Alphanumeric 1946 77
+            111 RES_CANCELLED 1 byte Alphanumeric 1947 78
+            112 RES_CANCELLED_DATE 6 bytes Alphanumeric 1948-1953 78
+            113 CANCEL_ZONE 1 byte Alphanumeric 1954 79
+            114 RESERVATION_MADE_FOR 6 bytes Alphanumeric 1955-1960 80
+            115 RESERVATION_LOCATION 20 bytes Alphanumeric 1961-1980 80
+            116 RESERVATION_MADE_ON 6 bytes Alphanumeric 1981-1986 81
+            117 RENTAL_AGREEMENT_NUMBER 18 bytes Alphanumeric 1987-2004 81
+            118 MERCHANDISE_TYPE 20 bytes Alphanumeric 2005-2024 82
+            119 MERCHANDISE_RETURNED 1 byte Alphanumeric 2025 82
+            120 RETURNED_NAME 24 bytes Alphanumeric 2026-2049 83
+            121 RETURNED_DATE 6 bytes Alphanumeric 2050-2055 83
+            122 RETURNED_HOW 8 bytes Alphanumeric 2056-2063 84
+            123 RETURNED_REASON 50 byes Alphanumeric 2064-2113 84
+            124 STORE_CREDIT_RECEIVED 1 byte Alphanumeric 2114 85
 
-    public void setCardMemberLastName1(String cardMemberLastName1) {
-        this.cardMemberLastName1 = cardMemberLastName1;
-    }
 
-    public String getCardMemberOriginalAccountNumber() {
-        return cardMemberOriginalAccountNumber;
-    }
-
-    public void setCardMemberOriginalAccountNumber(String cardMemberOriginalAccountNumber) {
-        this.cardMemberOriginalAccountNumber = cardMemberOriginalAccountNumber;
-    }
-
+     */
     public enum SupportToFollow {
         Y("Support is coming via mail or fax"),
         I("A scanned image provides support"),
         R("Both forms of support to follow: Mail or fax, AND Scanned image"),
         N("No support is being forwarded");
         private String description;
-
         SupportToFollow(String description) {
             this.description = description;
+        }
+    }
+
+    public static class SupportToFollowFormatter extends AbstractFixedFormatter<SupportToFollow> {
+        public SupportToFollow asObject(String string, FormatInstructions instructions) {
+            return SupportToFollow.valueOf(string);
+        }
+        public String asString(SupportToFollow enumeration, FormatInstructions instructions) {
+            String result = null;
+            if (enumeration != null) {
+                result = new StringFormatter().asObject(enumeration.name(), instructions);
+            }
+            return result;
         }
     }
 
@@ -546,6 +582,19 @@ public class Detail {
         }
     }
 
+    public static class ResolutionFormatter extends AbstractFixedFormatter<Resolution> {
+        public Resolution asObject(String string, FormatInstructions instructions) {
+            return Resolution.valueOf(string);
+
+        }
+        public String asString(Resolution enumeration, FormatInstructions instructions) {
+            String result = null;
+            if (enumeration != null) {
+                result = new StringFormatter().asObject(enumeration.name(), instructions);
+            }
+            return result;
+        }
+    }
     public enum CaseType {
         AIRDS("Airline Credit Requested"),
         AIRLT("Airline Lost/Stolen Ticket"),
@@ -566,6 +615,19 @@ public class Detail {
         }
     }
 
+    public static class CaseTypeFormatter extends AbstractFixedFormatter<CaseType> {
+        public CaseType asObject(String string, FormatInstructions instructions) {
+            return CaseType.valueOf(string);
+
+        }
+        public String asString(CaseType enumeration, FormatInstructions instructions) {
+            String result = null;
+            if (enumeration != null) {
+                result = new StringFormatter().asObject(enumeration.name(), instructions);
+            }
+            return result;
+        }
+    }
     public enum ChargebackReasonCode {
         A01("The amount of the Authorization Approval was less than the amount of the Charge you submitted."),
         A02("The Charge you submitted did not receive a valid Authorization Approval; it was declined or the Card was expired."),
@@ -653,435 +715,25 @@ public class Detail {
             }
 
         }
-
     }
-
-
-    public Detail withDataFileRecordType(String dataFileRecordType) {
-        this.dataFileRecordType = dataFileRecordType;
-        return this;
-    }
-
-    public Detail withServiceEstablishmentNumber(String serviceEstablishmentNumber) {
-        this.serviceEstablishmentNumber = serviceEstablishmentNumber;
-        return this;
-    }
-
-    public Detail withCardMemberAccountNumber(String cardMemberAccountNumber) {
-        this.cardMemberAccountNumber = cardMemberAccountNumber;
-        return this;
-    }
-
-    public Detail withCurrentCaseNumber(String currentCaseNumber) {
-        this.currentCaseNumber = currentCaseNumber;
-        return this;
-    }
-
-    public Detail withPreviousCaseNumber(String previousCaseNumber) {
-        this.previousCaseNumber = previousCaseNumber;
-        return this;
-    }
-
-    public Detail withResolution(Detail.Resolution resolution) {
-        this.resolution = resolution;
-        return this;
-    }
-
-    public Detail withAdjustmentDate(Date adjustmentDate) {
-        this.adjustmentDate = adjustmentDate;
-        return this;
-    }
-
-    public Detail withChargeDate(Date chargeDate) {
-        this.chargeDate = chargeDate;
-        return this;
-    }
-
-    public Detail withCaseType(Detail.CaseType caseType) {
-        this.caseType = caseType;
-        return this;
-    }
-
-    public Detail withLocationNumber(String locationNumber) {
-        this.locationNumber = locationNumber;
-        return this;
-    }
-
-    public Detail withChargebackReasonCode(Detail.ChargebackReasonCode chargebackReasonCode) {
-        this.chargebackReasonCode = chargebackReasonCode;
-        return this;
-    }
-
-    public Detail withChargebackAmount(MonetaryAmount chargebackAmount) {
-        this.chargebackAmount = chargebackAmount;
-        return this;
-    }
-
-    public Detail withChargebackAdjustmentNumber(String chargebackAdjustmentNumber) {
-        this.chargebackAdjustmentNumber = chargebackAdjustmentNumber;
-        return this;
-    }
-
-    public Detail withChargebackResolutionAdjustmentNumber(String chargebackResolutionAdjustmentNumber) {
-        this.chargebackResolutionAdjustmentNumber = chargebackResolutionAdjustmentNumber;
-        return this;
-    }
-
-    public Detail withChargebackReferenceCode(String chargebackReferenceCode) {
-        this.chargebackReferenceCode = chargebackReferenceCode;
-        return this;
-    }
-
-    public Detail withBilledAmount(MonetaryAmount billedAmount) {
-        this.billedAmount = billedAmount;
-        return this;
-    }
-
-    public Detail withSocAmount(MonetaryAmount socAmount) {
-        this.socAmount = socAmount;
-        return this;
-    }
-
-    public Detail withSocInvoiceNumber(String socInvoiceNumber) {
-        this.socInvoiceNumber = socInvoiceNumber;
-        return this;
-    }
-
-    public Detail withRocInvoiceNumber(String rocInvoiceNumber) {
-        this.rocInvoiceNumber = rocInvoiceNumber;
-        return this;
-    }
-
-    public Detail withForeignAmount(MonetaryAmount foreignAmount) {
-        this.foreignAmount = foreignAmount;
-        return this;
-    }
-
-    public Detail withForeignCurrency(Currency foreignCurrency) {
-        this.foreignCurrency = foreignCurrency;
-        return this;
-    }
-
-    public Detail withSupportToFollow(Detail.SupportToFollow supportToFollow) {
-        this.supportToFollow = supportToFollow;
-        return this;
-    }
-
-    public Detail withCardMemberName1(String cardMemberName1) {
-        this.cardMemberName1 = cardMemberName1;
-        return this;
-    }
-
-    public Detail withCardMemberName2(String cardMemberName2) {
-        this.cardMemberName2 = cardMemberName2;
-        return this;
-    }
-
-    public Detail withCardMemberAddress1(String cardMemberAddress1) {
-        this.cardMemberAddress1 = cardMemberAddress1;
-        return this;
-    }
-
-    public Detail withCardMemberAddress2(String cardMemberAddress2) {
-        this.cardMemberAddress2 = cardMemberAddress2;
-        return this;
-    }
-
-    public Detail withCardMemberCityState(String cardMemberCityState) {
-        this.cardMemberCityState = cardMemberCityState;
-        return this;
-    }
-
-    public Detail withCardMemberZip(String cardMemberZip) {
-        this.cardMemberZip = cardMemberZip;
-        return this;
-    }
-
-    public Detail withCardMemberFirstName1(String cardMemberFirstName1) {
-        this.cardMemberFirstName1 = cardMemberFirstName1;
-        return this;
-    }
-
-    public Detail withCardMemberMiddleName1(String cardMemberMiddleName1) {
-        this.cardMemberMiddleName1 = cardMemberMiddleName1;
-        return this;
-    }
-
-    public Detail withCardMemberLastName1(String cardMemberLastName1) {
-        this.cardMemberLastName1 = cardMemberLastName1;
-        return this;
-    }
-
-    public Detail withCardMemberOriginalAccountNumber(String cardMemberOriginalAccountNumber) {
-        this.cardMemberOriginalAccountNumber = cardMemberOriginalAccountNumber;
-        return this;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Detail detail = (Detail) o;
-
-        return new EqualsBuilder()
-                .append(getDataFileRecordType(), detail.getDataFileRecordType())
-                .append(getServiceEstablishmentNumber(), detail.getServiceEstablishmentNumber())
-                .append(getCardMemberAccountNumber(), detail.getCardMemberAccountNumber())
-                .append(getCurrentCaseNumber(), detail.getCurrentCaseNumber())
-                .append(getPreviousCaseNumber(), detail.getPreviousCaseNumber())
-                .append(getResolution(), detail.getResolution())
-                .append(getAdjustmentDate(), detail.getAdjustmentDate())
-                .append(getChargeDate(), detail.getChargeDate())
-                .append(getCaseType(), detail.getCaseType())
-                .append(getLocationNumber(), detail.getLocationNumber())
-                .append(getChargebackReasonCode(), detail.getChargebackReasonCode())
-                .append(getChargebackAmount(), detail.getChargebackAmount())
-                .append(getChargebackAdjustmentNumber(), detail.getChargebackAdjustmentNumber())
-                .append(getChargebackResolutionAdjustmentNumber(), detail.getChargebackResolutionAdjustmentNumber())
-                .append(getChargebackReferenceCode(), detail.getChargebackReferenceCode())
-                .append(getBilledAmount(), detail.getBilledAmount())
-                .append(getSocAmount(), detail.getSocAmount())
-                .append(getSocInvoiceNumber(), detail.getSocInvoiceNumber())
-                .append(getRocInvoiceNumber(), detail.getRocInvoiceNumber())
-                .append(getForeignAmount(), detail.getForeignAmount())
-                .append(getForeignCurrency(), detail.getForeignCurrency())
-                .append(getSupportToFollow(), detail.getSupportToFollow())
-                .append(getCardMemberName1(), detail.getCardMemberName1())
-                .append(getCardMemberName2(), detail.getCardMemberName2())
-                .append(getCardMemberAddress1(), detail.getCardMemberAddress1())
-                .append(getCardMemberAddress2(), detail.getCardMemberAddress2())
-                .append(getCardMemberCityState(), detail.getCardMemberCityState())
-                .append(getCardMemberZip(), detail.getCardMemberZip())
-                .append(getCardMemberFirstName1(), detail.getCardMemberFirstName1())
-                .append(getCardMemberMiddleName1(), detail.getCardMemberMiddleName1())
-                .append(getCardMemberLastName1(), detail.getCardMemberLastName1())
-                .append(getCardMemberOriginalAccountNumber(), detail.getCardMemberOriginalAccountNumber())
-                .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(getDataFileRecordType())
-                .append(getServiceEstablishmentNumber())
-                .append(getCardMemberAccountNumber())
-                .append(getCurrentCaseNumber())
-                .append(getPreviousCaseNumber())
-                .append(getResolution())
-                .append(getAdjustmentDate())
-                .append(getChargeDate())
-                .append(getCaseType())
-                .append(getLocationNumber())
-                .append(getChargebackReasonCode())
-                .append(getChargebackAmount())
-                .append(getChargebackAdjustmentNumber())
-                .append(getChargebackResolutionAdjustmentNumber())
-                .append(getChargebackReferenceCode())
-                .append(getBilledAmount())
-                .append(getSocAmount())
-                .append(getSocInvoiceNumber())
-                .append(getRocInvoiceNumber())
-                .append(getForeignAmount())
-                .append(getForeignCurrency())
-                .append(getSupportToFollow())
-                .append(getCardMemberName1())
-                .append(getCardMemberName2())
-                .append(getCardMemberAddress1())
-                .append(getCardMemberAddress2())
-                .append(getCardMemberCityState())
-                .append(getCardMemberZip())
-                .append(getCardMemberFirstName1())
-                .append(getCardMemberMiddleName1())
-                .append(getCardMemberLastName1())
-                .append(getCardMemberOriginalAccountNumber())
-                .toHashCode();
-    }
-
-    @Override
-    public String toString() {
-        try {
-            return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return super.toString();
-    }
-
-    // TODO: add parser
-    public static Detail parse(String lineOfText) throws java.text.ParseException {
-        decimalFormat.setParseBigDecimal(true);
-        Matcher m = pattern.matcher(lineOfText);
-        if (m.matches()) {
-            return new Detail()
-                    .withDataFileRecordType(m.group("dataFileRecordType").trim())
-                    .withServiceEstablishmentNumber(m.group("serviceEstablishmentNumber").trim())
-                    .withCardMemberAccountNumber(m.group("cardMemberAccountNumber").trim())
-                    .withCurrentCaseNumber(m.group("currentCaseNumber").trim())
-                    .withPreviousCaseNumber(m.group("previousCaseNumber").trim())
-                    .withResolution(Resolution.valueOf(m.group("resolution").trim()))
-                    .withAdjustmentDate(dateFormat.parse(m.group("adjustmentDate").trim()))
-                    .withChargeDate(dateFormat.parse(m.group("chargeDate").trim()))
-                    .withCaseType(CaseType.valueOf(m.group("caseType").trim()))
-                    .withLocationNumber(m.group("locationNumber").trim())
-                    .withChargebackReasonCode(ChargebackReasonCode.valueOf(m.group("chargebackReasonCode").trim()))
-                    .withChargebackAmount(
-                            Monetary.getDefaultAmountFactory()
-                                    .setCurrency("USD")
-                                    .setNumber(decimalFormat.parse(m.group("chargebackAmount"))
-                                    ).create()
-                    )
-                    .withChargebackAdjustmentNumber(m.group("chargebackAdjustmentNumber").trim())
-                    .withChargebackResolutionAdjustmentNumber(m.group("chargebackResolutionAdjustmentNumber").trim())
-                    .withChargebackReferenceCode(m.group("chargebackReferenceCode").trim())
-                    .withBilledAmount(
-                            Monetary.getDefaultAmountFactory()
-                                    .setCurrency("USD")
-                                    .setNumber(decimalFormat.parse(m.group("billedAmount"))
-                                    ).create()
-                    )
-                    .withSocAmount(
-                            Monetary.getDefaultAmountFactory()
-                                    .setCurrency("USD")
-                                    .setNumber(decimalFormat.parse(m.group("socAmount"))
-                                    ).create()
-                    )
-                    .withSocInvoiceNumber(m.group("socInvoiceNumber").trim())
-                    .withRocInvoiceNumber(m.group("rocInvoiceNumber").trim())
-                    .withForeignAmount(
-                            Monetary.getDefaultAmountFactory()
-                                    .setCurrency(m.group("foreignCurrency").trim())
-                                    .setNumber(decimalFormat.parse(m.group("foreignAmount").trim())
-                                    ).create()
-                    )
-                    .withForeignCurrency(Currency.getInstance(m.group("foreignCurrency").trim()))
-                    .withSupportToFollow(SupportToFollow.valueOf(m.group("supportToFollow").trim()))
-                    .withCardMemberName1(m.group("cardMemberName1").trim())
-                    .withCardMemberName2(m.group("cardMemberName2").trim())
-                    .withCardMemberAddress1(m.group("cardMemberAddress1").trim())
-                    .withCardMemberAddress2(m.group("cardMemberAddress2").trim())
-                    .withCardMemberCityState(m.group("cardMemberCityState").trim())
-                    .withCardMemberZip(m.group("cardMemberZip").trim())
-                    .withCardMemberFirstName1(m.group("cardMemberFirstName1").trim())
-                    .withCardMemberMiddleName1(m.group("cardMemberMiddleName1").trim())
-                    .withCardMemberLastName1(m.group("cardMemberLastName1").trim())
-                    .withCardMemberOriginalAccountNumber(m.group("cardMemberOriginalAccountNumber").trim());
-
+    public static class ChargebackReasonCodeFormatter extends AbstractFixedFormatter<ChargebackReasonCode> {
+        public ChargebackReasonCode asObject(String string, FormatInstructions instructions) {
+            return ChargebackReasonCode.valueOf(string);
 
         }
-        return null;
-    }
-
-    public static class MonetaryAmountSerializer extends JsonSerializer<MonetaryAmount> {
-        public void serialize(MonetaryAmount monetaryAmount,
-                              JsonGenerator jsonGenerator,
-                              SerializerProvider serializerProvider) throws IOException {
-            StringBuilder sb = new StringBuilder();
-            MonetaryAmountDecimalFormatBuilder
-                    .of("###0.00").withCurrencyUnit(monetaryAmount.getCurrency()).build()
-                    .print(sb, monetaryAmount);
-            jsonGenerator.writeString(sb.toString());
-        }
-    }
-
-    /**
-     * dataFileRecordType
-     * serviceEstablishmentNumber
-     * cardMemberAccountNumber
-     * currentCaseNumber
-     * previousCaseNumber
-     * resolution
-     * adjustmentDate
-     * chargeDate
-     * caseType
-     * locationNumber
-     * chargebackReasonCode
-     * chargebackAmount
-     * chargebackAdjustmentNumber
-     * chargebackResolutionAdjustmentNumber
-     * chargebackReferenceCode
-     * billedAmount
-     * socAmount
-     * socInvoiceNumber
-     * rocInvoiceNumber
-     * foreignAmount
-     * foreignCurrency
-     * supportToFollow
-     * cardMemberName1
-     * cardMemberName2
-     * cardMemberAddress1
-     * cardMemberAddress2
-     * cardMemberCityState
-     * cardMemberZip
-     * cardMemberFirstName1
-     * cardMemberMiddleName1
-     * cardMemberLastName1
-     * cardMemberOriginalAccountNumber
-     */
-
-    public static void writeCSVFile(String csvFileName, List<Detail> records) {
-        ICsvBeanWriter beanWriter = null;
-        CellProcessor[] processors = new CellProcessor[]{
-                new org.supercsv.cellprocessor.constraint.NotNull(),  // RecordType
-                new ParseLong(), // seNumber
-                new org.supercsv.cellprocessor.constraint.NotNull(), // cardmember account
-                new org.supercsv.cellprocessor.constraint.NotNull(), // current case
-                new org.supercsv.cellprocessor.constraint.NotNull(), // prev case
-                new org.supercsv.cellprocessor.constraint.NotNull(), // resolution
-                new FmtDate("yyyy-MM-dd"), // adjustment Date
-                new FmtDate("yyyy-MM-dd"), // charge  date
-                new org.supercsv.cellprocessor.constraint.NotNull(), // case type
-                new Optional(), // location numbner
-                new org.supercsv.cellprocessor.constraint.NotNull(), // chargeback reason
-                new ParseBigDecimal(), // chargeback Amount
-                new Trim(), // chargeback adj num
-                new Optional(), // chargeback ref
-                new ParseBigDecimal(), // billed Amount
-                new ParseBigDecimal(), // soc Amount
-                new ParseLong(), // socInvoice
-                new ParseLong(), // rocInvoice
-                new Optional(new ParseBigDecimal()), // Foreign Amount
-                new Optional(), //Foreign Currency
-                new NotNull(), // support to follow
-                new Optional(new Trim()),
-                new Optional(new Trim()),
-                new Optional(new Trim()),
-                new Optional(new Trim()),
-                new Optional(new Trim()),
-                new Optional(new Trim()),
-                new Optional(new Trim())
-        };
-
-        try {
-            CsvPreference redshiftPreprerence =
-                    new CsvPreference.Builder(CsvPreference.EXCEL_PREFERENCE)
-                            .surroundingSpacesNeedQuotes(true)
-                            .ignoreEmptyLines(true)
-                            .useQuoteMode(new AlwaysQuoteMode())
-                            .build();
-            beanWriter = new CsvBeanWriter(new FileWriter(csvFileName),
-                    redshiftPreprerence);
-            String[] header = {"dataFileRecordType", "serviceEstablishmentNumber", "cardMemberAccountNumber", "currentCaseNumber", "previousCaseNumber", "resolution",
-                    "adjustmentDate", "chargeDate", "caseType", "locationNumber", "chargebackReasonCode", "chargebackAmount", "chargebackAdjustmentNumber", "chargebackResolutionAdjustmentNumber", "chargebackReferenceCode", "billedAmount",
-                    "socAmount", "socInvoiceNumber", "rocInvoiceNumber", "foreignAmount", "foreignCurrency", "supportToFollow", "cardMemberName1", "cardMemberName2", "cardMemberAddress1",
-                    "cardMemberAddress2", "cardMemberCityState", "cardMemberZip", "cardMemberFirstName1", "cardMemberMiddleName1", "cardMemberLastName1", "cardMemberOriginalAccountNumber"};
-            beanWriter.writeHeader(header);
-
-            for (Detail record : records) {
-                beanWriter.write(record, header, processors);
+        public String asString(ChargebackReasonCode enumeration, FormatInstructions instructions) {
+            String result = null;
+            if (enumeration != null) {
+                result = new StringFormatter().asObject(enumeration.name(), instructions);
             }
-
-        } catch (IOException ex) {
-            System.err.println("Error writing the CSV file: " + ex);
-        } finally {
-            if (beanWriter != null) {
-                try {
-                    beanWriter.close();
-                } catch (IOException ex) {
-                    System.err.println("Error closing the writer: " + ex);
-                }
-            }
+            return result;
         }
     }
+
+    public Detail parse(FixedFormatManager manager, String line){
+        return manager.load(Detail.class,line);
+    }
+
+
+
 }
