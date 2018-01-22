@@ -79,7 +79,7 @@ public class ReconciledPayment {
         private List<MerchantSubmission> merchantSubmissions;
         private Trailer trailer;
 
-        private ReconciledPaymentBuilder() {
+        public ReconciledPaymentBuilder() {
         }
 
         public static ReconciledPaymentBuilder aReconciledPayment() {

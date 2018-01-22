@@ -151,7 +151,7 @@ public class PricingRecord {
         this.recordSubCode = recordSubCode;
     }
 
-    @Field(offset = 36, length = 64, align = Align.RIGHT, paddingChar = '0')//  getPricingDescription
+    @Field(offset = 36, length = 64, align = Align.LEFT, paddingChar = ' ')//  getPricingDescription
     public String getPricingDescription() {
         return pricingDescription;
     }
