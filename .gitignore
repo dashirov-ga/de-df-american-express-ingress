@@ -57,8 +57,8 @@ buildNumber.properties
 # Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)
 !/.mvn/wrapper/maven-wrapper.jar
 
-.idea/*
 /df-american-express-ingress.iml
 .idea/
 src/main/resources/df-american-express-ingress.properties
 docs/
+/src/test/resources/df-american-express-ingress-test.properties
