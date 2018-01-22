@@ -1,9 +1,6 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
-import com.ancientprogramming.fixedformat4j.annotation.Align;
-import com.ancientprogramming.fixedformat4j.annotation.Field;
-import com.ancientprogramming.fixedformat4j.annotation.FixedFormatPattern;
-import com.ancientprogramming.fixedformat4j.annotation.Record;
+import com.ancientprogramming.fixedformat4j.annotation.*;
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -315,6 +312,7 @@ public class SOCRecord {
     }
 
     @Field(offset = 186, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
+    @FixedFormatDecimal(decimals = 0)
     //  getRocCalculatedCount
     public BigDecimal getRocCalculatedCount() {
         return rocCalculatedCount;

@@ -2,6 +2,7 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file;
 
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
+    @JsonIgnore
     private static final String id = "CBNOT";
     private final static ObjectMapper mapper = new ObjectMapper();
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();

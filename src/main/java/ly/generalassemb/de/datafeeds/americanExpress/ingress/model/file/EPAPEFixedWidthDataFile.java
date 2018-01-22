@@ -1,6 +1,5 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file;
 
-import com.ancientprogramming.fixedformat4j.annotation.Record;
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -12,9 +11,7 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDat
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFileComponent;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.NotRegisteredException;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.S3CapableFWDF;
-
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.file.Files;
@@ -24,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -195,11 +194,14 @@ public class EPAPEFixedWidthDataFile extends S3CapableFWDF {
         }
         return this;
     }
-
-    @JsonIgnore
     @Override
     public String getId() {
-        return id;
+        return (super.getId() == null)? id : super.getId();
+    }
+
+    @Override
+    public String getFileName() {
+        return this.fileName;
     }
 
     @Override
@@ -229,14 +231,9 @@ public class EPAPEFixedWidthDataFile extends S3CapableFWDF {
         output.put(FixedWidthDataFileComponent.EPAPE_CSV_ADJUSTMENT_COMPONENT,
                 csvMapper.writer(csvMapper.schemaFor(AdjustmentRecord.class).withHeader())
                         .writeValueAsString(
-                                this.getPaymentList()
-                                        .stream()
-                                        .map(ReconciledPayment::getMerchantSubmissions)
-                                        .map(
-                                                merchantSubmissions -> merchantSubmissions
-                                                        .stream()
-                                                        .map(MerchantSubmission::getAdjustments)
-                                        )
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .flatMap(merchantSubmission->merchantSubmission.getAdjustments().stream())
                                         .collect(Collectors.toList())
                         )
 
@@ -246,29 +243,20 @@ public class EPAPEFixedWidthDataFile extends S3CapableFWDF {
 
                 csvMapper.writer(csvMapper.schemaFor(SOCRecord.class).withHeader()).
                         writeValueAsString(
-                                this.getPaymentList()
-                                        .stream()
-                                        .map(ReconciledPayment::getMerchantSubmissions)
-                                        .map(
-                                                merchantSubmissions -> merchantSubmissions
-                                                        .stream()
-                                                        .map(MerchantSubmission::getSocRecord)
-                                        )
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .map(MerchantSubmission::getSocRecord)
                                         .collect(Collectors.toList())
                         )
 
         );
 
         output.put(FixedWidthDataFileComponent.EPAPE_CSV_ROC_COMPONENT,
-                csvMapper.writer(csvMapper.schemaFor(SOCRecord.class).withHeader())
+                csvMapper.writer(csvMapper.schemaFor(ROCRecord.class).withHeader())
                         .writeValueAsString(
-                                this.getPaymentList()
-                                        .stream()
-                                        .map(ReconciledPayment::getMerchantSubmissions)
-                                        .map(
-                                                merchantSubmissions -> merchantSubmissions.stream()
-                                                        .map(MerchantSubmission::getRocRecords)
-                                        )
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .flatMap(merchantSubmission -> merchantSubmission.getRocRecords().stream())
                                         .collect(Collectors.toList())
                         )
 

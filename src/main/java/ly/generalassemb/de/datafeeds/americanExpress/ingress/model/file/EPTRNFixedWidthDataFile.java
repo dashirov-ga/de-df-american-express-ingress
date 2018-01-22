@@ -34,8 +34,9 @@ public class EPTRNFixedWidthDataFile extends S3CapableFWDF {
     @JsonIgnore
     private StringBuffer inputFile;
 
+    @Override
     public String getId() {
-        return id;
+        return (super.getId() == null)? id : super.getId();
     }
 
     EPTRNFixedWidthDataFile(File fileName) {

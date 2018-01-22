@@ -2,6 +2,7 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file;
 
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -18,12 +19,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EMINQFixedWidthDataFile extends S3CapableFWDF {
+    @JsonIgnore
     private final static ObjectMapper mapper = new ObjectMapper();
+    @JsonIgnore
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();
+    @JsonIgnore
     private static final String id = "EMINQ";
+    @JsonIgnore
     private String fileName;
+    @JsonIgnore
     private StringBuffer inputFile;
 
     public String getFileName() {
@@ -108,7 +116,7 @@ public class EMINQFixedWidthDataFile extends S3CapableFWDF {
 
     @Override
     public String getId() {
-        return id;
+        return (super.getId() == null)? id : super.getId();
     }
 
     @Override

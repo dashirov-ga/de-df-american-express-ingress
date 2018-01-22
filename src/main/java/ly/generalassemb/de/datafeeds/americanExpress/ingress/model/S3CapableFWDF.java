@@ -12,6 +12,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.Config;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.EnumUtil;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -25,9 +26,37 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class S3CapableFWDF implements FixedWidthDataFile {
+    @JsonIgnore
+    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)\\#(?<fileId>\\p{Alnum}+)");
+
+    @JsonIgnore
+    @Override
+    public String getId() {
+        if (this.getFileName() != null ) {
+            Matcher m = fileNamePattern.matcher(this.getFileName());
+            LOGGER.debug("filename: {} , matches: {}", this.getFileName(), m.matches());
+            return m.group("type");
+        }
+        return null;
+    }
+
+    @JsonIgnore
+    @Override
+    public String getFileId() {
+        if (this.getFileName() != null ) {
+            Matcher m = fileNamePattern.matcher(this.getFileName());
+            LOGGER.debug("filename: {} , matches: {}", this.getFileName(), m.matches());
+            return m.group("fileId");
+        }
+        return null;
+    }
+
+
     private static final Logger LOGGER = LoggerFactory.getLogger(S3CapableFWDF.class);
     private static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     /**
@@ -116,10 +145,11 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
 
 
 
+                System.out.println(this.getFileId());
 
                 PutObjectRequest req = new PutObjectRequest(
                         bucket,
-                        k.getS3Prefix() + k.getFileNameExtension(),
+                        this.getId() + "/" + this.getFileId() + "/" + k.getS3Prefix() + k.getFileNameExtension(),
                         new ByteArrayInputStream(content),
                         meta);
 
@@ -127,6 +157,7 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
                 // req.setMetadata(meta);
                 s3.putObject(req);
 
+                // TODO: move to data lake, do not drop in the top level
                 out.put(k, new AmazonS3URI("s3://" + req.getBucketName() + "/" + req.getKey()));
             } catch (Exception e){
                 throw new RuntimeException(e);

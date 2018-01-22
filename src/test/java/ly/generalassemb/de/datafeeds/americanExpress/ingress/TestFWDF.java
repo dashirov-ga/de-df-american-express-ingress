@@ -75,7 +75,19 @@ public class TestFWDF {
         FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPTRN").parse(file);
         testFile.toDirectory(new File("/Users/davidashirov/parser_test"));
     }
+    @Test
+    public void testEPEAPEoS3() throws Exception {
+        File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ");
+        FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPAPE").parse(file);
+        testFile.toS3(new Config(new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/src/test/resources/df-american-express-ingress-test.properties").getAbsoluteFile().toURI().toURL()));
+    }
 
+    @Test
+    public void testEPEAPEoRedshift() throws Exception {
+        File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ");
+        FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPAPE").parse(file);
+        testFile.toRedshift(new Config(new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/src/test/resources/df-american-express-ingress-test.properties").getAbsoluteFile().toURI().toURL()));
+    }
 
     @Test
     public void testEPTRNToS3() throws Exception {

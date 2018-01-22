@@ -118,7 +118,7 @@ public class EMCBKFixedWidthDataFile extends S3CapableFWDF {
 
     @Override
     public String getId() {
-        return id;
+        return (super.getId() == null)? id : super.getId();
     }
 
     @Override

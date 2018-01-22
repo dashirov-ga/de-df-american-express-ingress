@@ -9,6 +9,8 @@ import java.util.Map;
 public interface FixedWidthDataFile {
     public FixedWidthDataFile parse(File fixedWidthDataFile) throws Exception;
     public String getId();
+    public String getFileId();
+    public String getFileName();
     public void toDirectory(File targetDirectory) throws Exception;
     public Map<FixedWidthDataFileComponent, String> toLoadableComponents( ) throws Exception;
     public Map<FixedWidthDataFileComponent,AmazonS3URI> toS3(Config configuration) throws Exception;
