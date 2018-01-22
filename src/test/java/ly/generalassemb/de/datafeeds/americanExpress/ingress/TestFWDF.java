@@ -9,6 +9,7 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.Header;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.SOCRecord;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFile;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFileFactory;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.S3CapableFWDF;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file.EMCBKFixedWidthDataFile;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file.EMINQFixedWidthDataFile;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file.EPAPEFixedWidthDataFile;
@@ -70,6 +71,15 @@ public class TestFWDF {
     }
 
     @Test
+    public void testFactoryOnPath() throws Exception{
+        Path filePath = Paths.get("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ");
+        String type = S3CapableFWDF.getFileType(filePath);
+        FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile(type);
+        testFile.parse(filePath.toFile());
+        System.out.println(testFile.toString());
+    }
+
+    @Test
     public void testEPTRNToDisk() throws Exception {
         File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA59662.EPTRN-M15HFK42332SX6");
         FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPTRN").parse(file);
@@ -87,6 +97,12 @@ public class TestFWDF {
         File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ");
         FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPAPE").parse(file);
         testFile.toRedshift(new Config(new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/src/test/resources/df-american-express-ingress-test.properties").getAbsoluteFile().toURI().toURL()));
+    }
+
+    @Test
+    public void testFactoryPath() throws Exception {
+        FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile(Paths.get("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ"));
+        testFile.toDirectory(new File("/tmp"));
     }
 
     @Test

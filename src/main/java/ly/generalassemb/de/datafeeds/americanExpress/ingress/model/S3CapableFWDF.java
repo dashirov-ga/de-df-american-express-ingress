@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -56,6 +57,25 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
         return null;
     }
 
+    @JsonIgnore
+    public static  String getFileId(Path filePath) {
+        if (filePath.getFileName() != null ) {
+            Matcher m = fileNamePattern.matcher(filePath.getFileName().toString());
+            LOGGER.debug("filename: {} , matches: {}", filePath.getFileName().toString(), m.matches());
+            return m.group("type");
+        }
+        return null;
+    }
+
+    @JsonIgnore
+    public static  String getFileType(Path filePath) {
+        if (filePath.getFileName() != null ) {
+            Matcher m = fileNamePattern.matcher(filePath.getFileName().toString());
+            LOGGER.debug("filename: {} , matches: {}", filePath.getFileName().toString(), m.matches());
+            return m.group("type");
+        }
+        return null;
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(S3CapableFWDF.class);
     private static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
