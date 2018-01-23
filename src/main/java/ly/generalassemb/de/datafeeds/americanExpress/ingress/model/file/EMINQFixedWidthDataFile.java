@@ -80,12 +80,13 @@ public class EMINQFixedWidthDataFile extends S3CapableFWDF {
 
     @Override
     public FixedWidthDataFile parse(File fixedWidthDataFile) throws Exception {
-        this.fileName = fixedWidthDataFile.getAbsolutePath();
+        this.fileName = fixedWidthDataFile.getName();
         BufferedReader reader = new BufferedReader(new FileReader(fixedWidthDataFile));
         String line;
         int lineNo=0;
+        inputFile = new StringBuffer();
         while ((line = reader.readLine()) != null) {
-            this.inputFile.append(line);
+            this.inputFile.append(line).append("\n");
             ++lineNo;
             switch (line.substring(0, 1)) {
                 case "H":
@@ -110,7 +111,7 @@ public class EMINQFixedWidthDataFile extends S3CapableFWDF {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object) this).toString();
+            return super.toString();
         }
     }
 
@@ -125,9 +126,9 @@ public class EMINQFixedWidthDataFile extends S3CapableFWDF {
         CsvMapper csvMapper = new CsvMapper();
         // processed file is a json serialized "this"
         output.put(FixedWidthDataFileComponent.EMINQ_JSON_OBJECT,mapper.writeValueAsString(this));
-        output.put(FixedWidthDataFileComponent.EMINQ_CSV_HEADER_COMPONENT,mapper.writeValueAsString(this.header));
-        output.put(FixedWidthDataFileComponent.EMINQ_CSV_TRAILER_COMPONENT,mapper.writeValueAsString(this.trailer));
-        output.put(FixedWidthDataFileComponent.EMINQ_CSV_INQUIRY_COMPONENT,mapper.writeValueAsString(this.getDetails()));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_HEADER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader()).writeValueAsString(this.header));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_TRAILER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Trailer.class).withHeader()).writeValueAsString(this.trailer));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_INQUIRY_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Detail.class).withHeader()).writeValueAsString(this.details));
         output.put(FixedWidthDataFileComponent.EMINQ_FIXED_WIDTH_OBJECT,inputFile.toString());
         return output;
     }

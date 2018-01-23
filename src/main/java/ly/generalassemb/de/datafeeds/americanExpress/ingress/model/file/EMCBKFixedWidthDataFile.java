@@ -82,12 +82,9 @@ public class EMCBKFixedWidthDataFile extends S3CapableFWDF {
         BufferedReader reader = new BufferedReader(new FileReader(fixedWidthDataFile));
         String line;
         int lineNo = 0;
-
         while ((line = reader.readLine()) != null) {
             ++lineNo;
-            this.inputFile.append(line);
-            this.inputFile.append("\n");
-
+            this.inputFile.append(line).append("\n");
             String typeIndicator = line.substring(0, 1);
             switch (typeIndicator) {
                 case "H":
@@ -127,9 +124,9 @@ public class EMCBKFixedWidthDataFile extends S3CapableFWDF {
         CsvMapper csvMapper = new CsvMapper();
         // processed file is a json serialized "this"
         output.put(FixedWidthDataFileComponent.EMCBK_JSON_OBJECT,mapper.writeValueAsString(this));
-        output.put(FixedWidthDataFileComponent.EMCBK_CSV_HEADER_COMPONENT,mapper.writeValueAsString(this.header));
-        output.put(FixedWidthDataFileComponent.EMCBK_CSV_TRAILER_COMPONENT,mapper.writeValueAsString(this.trailer));
-        output.put(FixedWidthDataFileComponent.EMCBK_CSV_CHARGEBACK_COMPONENT,mapper.writeValueAsString(this.getDetails()));
+        output.put(FixedWidthDataFileComponent.EMCBK_CSV_HEADER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader()).writeValueAsString(this.header));
+        output.put(FixedWidthDataFileComponent.EMCBK_CSV_TRAILER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Trailer.class).withHeader()).writeValueAsString(this.trailer));
+        output.put(FixedWidthDataFileComponent.EMCBK_CSV_CHARGEBACK_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Detail.class).withHeader()).writeValueAsString(this.details));
         output.put(FixedWidthDataFileComponent.EMCBK_FIXED_WIDTH_OBJECT,inputFile.toString());
         return output;
     }

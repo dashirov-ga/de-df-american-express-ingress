@@ -4,7 +4,6 @@ import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.ReconciledPayment;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.Header;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.SOCRecord;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFile;

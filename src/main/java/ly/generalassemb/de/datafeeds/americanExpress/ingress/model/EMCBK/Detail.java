@@ -545,7 +545,6 @@ public class Detail {
         this.sellerId = sellerId;
     }
 
-
     public Detail parse(FixedFormatManager manager, String line){
         return manager.load(Detail.class,line);
     }
