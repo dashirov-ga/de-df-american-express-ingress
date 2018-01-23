@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 
 public class FixedWidthDataFileFactory {
-    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)\\#(?<fileId>\\p{Alnum}+)");
+    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)[#-](?<fileId>\\p{Alnum}+)");
     public static FixedWidthDataFile getDataFile (Path filePath) throws Exception {
                 Matcher m = fileNamePattern.matcher(filePath.getFileName().toString());
                 String type = (m.matches()) ? m.group("type") : filePath.getFileName().toString();

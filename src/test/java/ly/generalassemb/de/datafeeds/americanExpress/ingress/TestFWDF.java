@@ -26,7 +26,6 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.stream.Stream;
 
 public class TestFWDF {
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();
@@ -135,7 +134,7 @@ public class TestFWDF {
 
     @Test
     public void testCBNOTToRedshift() throws Exception {
-        File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA59662.CBNOT-E87HKNN37154R4");
+        File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA59662.CBNOT-M11HEJN2158XYS");
         FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("CBNOT").parse(file);
         testFile.toRedshift(new Config(new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/src/test/resources/df-american-express-ingress-test.properties").getAbsoluteFile().toURI().toURL()));
     }

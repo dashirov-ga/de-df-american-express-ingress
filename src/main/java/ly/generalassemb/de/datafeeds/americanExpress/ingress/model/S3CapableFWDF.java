@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 public abstract class S3CapableFWDF implements FixedWidthDataFile {
     @JsonIgnore
-    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)\\#(?<fileId>\\p{Alnum}+)");
+    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)[#-](?<fileId>\\p{Alnum}+)");
 
     @JsonIgnore
     @Override
@@ -62,7 +62,7 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
         if (filePath.getFileName() != null ) {
             Matcher m = fileNamePattern.matcher(filePath.getFileName().toString());
             LOGGER.debug("filename: {} , matches: {}", filePath.getFileName().toString(), m.matches());
-            return m.group("type");
+            return m.group("fileId");
         }
         return null;
     }

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Header;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Trailer;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE.ReconciledPayment;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFile;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.FixedWidthDataFileComponent;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.NotRegisteredException;
@@ -21,19 +22,26 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
     @JsonIgnore
     private static final String id = "CBNOT";
+    @JsonIgnore
     private final static ObjectMapper mapper = new ObjectMapper();
+    @JsonIgnore
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();
+    @JsonIgnore
     private String fileName;
+    @JsonIgnore
     private StringBuffer inputFile;
 
+    @JsonIgnore
     public String getFileName() {
         return fileName;
     }
 
+    @JsonIgnore
     public String getInputFile() {
         return inputFile.toString();
     }
@@ -80,10 +88,11 @@ public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
         BufferedReader reader = new BufferedReader(new FileReader(fixedWidthDataFile));
         String line;
         int lineNo = 0;
-
+        this.inputFile = new StringBuffer();
+        this.fileName = fixedWidthDataFile.getName();
         while ((line = reader.readLine()) != null) {
             ++lineNo;
-            this.inputFile.append(line);
+            this.inputFile.append(line).append("\n");
             String typeIndicator = line.substring(0, 1);
             switch (typeIndicator) {
                 case "H":
@@ -108,7 +117,7 @@ public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object) this).toString();
+            return super.toString();
         }
     }
 
@@ -123,9 +132,26 @@ public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
         CsvMapper csvMapper = new CsvMapper();
         // processed file is a json serialized "this"
         output.put(FixedWidthDataFileComponent.CBNOT_JSON_OBJECT,mapper.writeValueAsString(this));
-        output.put(FixedWidthDataFileComponent.CBNOT_CSV_HEADER_COMPONENT,mapper.writeValueAsString(this.header));
-        output.put(FixedWidthDataFileComponent.CBNOT_CSV_TRAILER_COMPONENT,mapper.writeValueAsString(this.trailer));
-        output.put(FixedWidthDataFileComponent.CBNOT_CSV_CHARGEBACK_NOTIFICATION_COMPONENT,mapper.writeValueAsString(this.getDetails()));
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_HEADER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Header.class).withHeader())
+                        .writeValueAsString(this.getHeader())
+
+        );
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_TRAILER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Trailer.class).withHeader())
+                        .writeValueAsString(this.getTrailer())
+
+        );
+
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_CHARGEBACK_NOTIFICATION_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail.class).withHeader())
+                        .writeValueAsString(this.getDetails())
+
+        );
+
         output.put(FixedWidthDataFileComponent.CBNOT_FIXED_WIDTH_OBJECT,inputFile.toString());
         return output;
     }
