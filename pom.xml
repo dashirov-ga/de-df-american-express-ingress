@@ -42,13 +42,13 @@
 
     <distributionManagement>
         <repository>
-            <id>GA_releases</id>
+            <id>S3_releases</id>
             <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-releases/</url>
         </repository>
 
         <snapshotRepository>
             <uniqueVersion>true</uniqueVersion>
-            <id>GA_snapshots</id>
+            <id>S3_snapshots</id>
             <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
