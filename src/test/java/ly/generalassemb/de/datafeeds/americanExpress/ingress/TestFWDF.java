@@ -26,6 +26,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+@Ignore
 public class TestFWDF {
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();
 
