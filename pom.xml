@@ -32,7 +32,7 @@
     <repositories>
         <repository>
             <id>general-assembly</id>
-            <url>https://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-public/</url>
+            <url>https://artifacts.us-east-1.elasticbeanstalk.com/repository/maven-public/</url>
         </repository>
         <repository>
             <id>redshift</id>
@@ -43,13 +43,13 @@
     <distributionManagement>
         <repository>
             <id>S3_releases</id>
-            <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-releases/</url>
+            <url>http://artifacts.us-east-1.elasticbeanstalk.com/repository/maven-releases/</url>
         </repository>
 
         <snapshotRepository>
             <uniqueVersion>true</uniqueVersion>
             <id>S3_snapshots</id>
-            <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-snapshots/</url>
+            <url>http://artifacts.us-east-1.elasticbeanstalk.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
