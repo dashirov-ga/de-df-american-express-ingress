@@ -32,7 +32,7 @@
     <repositories>
         <repository>
             <id>general-assembly</id>
-            <url>http://ec2-52-23-211-85.compute-1.amazonaws.com:8081/repository/maven-public/</url>
+            <url>https://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-public/</url>
         </repository>
         <repository>
             <id>redshift</id>
@@ -43,13 +43,13 @@
     <distributionManagement>
         <repository>
             <id>GA_releases</id>
-            <url>http://ec2-52-23-211-85.compute-1.amazonaws.com:8081/repository/maven-releases/</url>
+            <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-releases/</url>
         </repository>
 
         <snapshotRepository>
             <uniqueVersion>true</uniqueVersion>
             <id>GA_snapshots</id>
-            <url>http://ec2-52-23-211-85.compute-1.amazonaws.com:8081/repository/maven-snapshots/</url>
+            <url>http://sonatype-nexus.us-east-1.elasticbeanstalk.com/repository/maven-ga-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
