@@ -62,3 +62,5 @@ buildNumber.properties
 src/main/resources/df-american-express-ingress.properties
 docs/
 /src/test/resources/df-american-express-ingress-test.properties
+
+de-df-american-express-ingress.iml
