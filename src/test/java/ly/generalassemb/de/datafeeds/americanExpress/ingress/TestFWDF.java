@@ -15,7 +15,8 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.file.EPAPEFix
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.ReverseLineReader;
 import org.junit.Ignore;
 import org.junit.Test;
-import sun.jvm.hotspot.utilities.Assert;
+import static org.junit.Assert.*;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -56,7 +57,7 @@ public class TestFWDF {
     @Test
     public void testFactory() throws Exception {
         File file = new File("/Users/davidashirov/Source/GA/de-df-american-express-ingress/docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ");
-        Assert.that(file.exists(), "File does not exist");
+        assertTrue( "File does not exist",file.exists());
         FixedWidthDataFile testFile = FixedWidthDataFileFactory.getDataFile("EPAPE");
         testFile.parse(file);
         System.out.println(testFile.toString());
