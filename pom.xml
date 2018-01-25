@@ -258,12 +258,14 @@
     <dependencies>
 
         <!-- https://mvnrepository.com/artifact/com.jcraft/jsch -->
+        <!-- SFTP connection to Amex  -->
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
             <version>0.1.54</version>
         </dependency>
 
+        <!-- used in snowplow monitoring -->
         <dependency>
             <groupId>com.snowplowanalytics</groupId>
             <artifactId>snowplow-java-tracker</artifactId>
@@ -279,13 +281,17 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+        <!-- used in snowplow event model -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.5</version>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/javax.validation/validation-api -->
+        <!-- used in record models -  @NotNull and @Size annotations-->
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
@@ -293,6 +299,7 @@
         </dependency>
 
 
+        <!-- used in unit testing -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -301,6 +308,7 @@
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.squareup.okhttp/okhttp -->
+        <!-- used in snowplow monitoring -->
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>

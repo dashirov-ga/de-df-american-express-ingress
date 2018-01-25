@@ -1,21 +1,16 @@
 package co.ga.batch;
 
-import java.io.Serializable;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.Field;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.snowplowanalytics.snowplow.tracker.payload.SelfDescribingJson;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
