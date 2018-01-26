@@ -7,10 +7,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Record(length = 450)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -116,13 +117,13 @@ public class AdjustmentRecord {
     @JsonProperty("AMEX_PROCESS_DATE")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date processingDate;
-    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0')
+    private LocalDate processingDate;
+    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)
     @FixedFormatPattern("yyyyDDD")
-    public Date getProcessingDate() {
+    public LocalDate getProcessingDate() {
         return processingDate;
     }
-    public void setProcessingDate(Date processingDate) {
+    public void setProcessingDate(LocalDate processingDate) {
         this.processingDate = processingDate;
     }
 
@@ -188,25 +189,25 @@ public class AdjustmentRecord {
 
     @JsonProperty("DISCOUNT_RATE")
     @NotNull
-    private Double discountRate;
+    private BigDecimal discountRate;
     @Field(offset=100,length=5,align=Align.RIGHT,paddingChar = '0')        //  getDiscountRate()
     @FixedFormatDecimal(decimals = 5)
-    public Double getDiscountRate() {
+    public BigDecimal getDiscountRate() {
         return discountRate;
     }
-    public void setDiscountRate(Double discountRate) {
+    public void setDiscountRate(BigDecimal discountRate) {
         this.discountRate = discountRate;
     }
 
     @JsonProperty("SERVICE_FEE_RATE")
     @NotNull
-    private Double serviceFeeRate;
+    private BigDecimal serviceFeeRate;
     @Field(offset=105,length=5,align=Align.RIGHT,paddingChar = '0')        //  getServiceFeeRate()
     @FixedFormatDecimal(decimals = 5)
-    public Double getServiceFeeRate() {
+    public BigDecimal getServiceFeeRate() {
         return serviceFeeRate;
     }
-    public void setServiceFeeRate(Double serviceFeeRate) {
+    public void setServiceFeeRate(BigDecimal serviceFeeRate) {
         this.serviceFeeRate = serviceFeeRate;
     }
 

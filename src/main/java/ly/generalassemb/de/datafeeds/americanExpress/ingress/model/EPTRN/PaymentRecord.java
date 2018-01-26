@@ -7,10 +7,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Record(length = 450)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -89,13 +90,13 @@ public class PaymentRecord {
     @NotNull
     @JsonProperty("PAYMENT_DATE")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date paymentDate;
+    private LocalDate paymentDate;
     @FixedFormatPattern("yyyyDDD")
-    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0')        //  getPaymentDate()
-    public Date getPaymentDate() {
+    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)        //  getPaymentDate()
+    public LocalDate getPaymentDate() {
         return paymentDate;
     }
-    public void setPaymentDate(Date paymentDate) {
+    public void setPaymentDate(LocalDate paymentDate) {
         this.paymentDate = paymentDate;
     }
 

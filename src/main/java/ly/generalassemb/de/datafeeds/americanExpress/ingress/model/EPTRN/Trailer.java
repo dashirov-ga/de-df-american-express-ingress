@@ -6,10 +6,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateTimeFormatter;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Record(length = 450)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -37,13 +38,13 @@ public class Trailer {
     @JsonProperty("DF_TRL_DATE")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "America/New_York")
-    private Date date;
+    private LocalDateTime date;
     @FixedFormatPattern("MMddyyyyHHmm")
-    @Field(offset=6,length=12,align=Align.RIGHT,paddingChar = '0')        //  getDate()
-    public Date getDate() {
+    @Field(offset=6,length=12,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateTimeFormatter.class)        //  getDate()
+    public LocalDateTime getDate() {
         return date;
     }
-    public void setDate(Date date) {
+    public void setDate(LocalDateTime date) {
         this.date = date;
     }
 

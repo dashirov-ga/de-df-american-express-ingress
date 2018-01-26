@@ -7,10 +7,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Record(length = 450)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -142,26 +143,26 @@ public class ROCRecord {
     @JsonProperty("TLRR_SE_BUSINESS_DATE")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date serviceEstablishmentBusinessDate;
-    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0')        //  getServiceEstablishmentBusinessDate()
+    private LocalDate serviceEstablishmentBusinessDate;
+    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)        //  getServiceEstablishmentBusinessDate()
     @FixedFormatPattern("yyyyDDD")
-    public Date getServiceEstablishmentBusinessDate() {
+    public LocalDate getServiceEstablishmentBusinessDate() {
         return serviceEstablishmentBusinessDate;
     }
-    public void setServiceEstablishmentBusinessDate(Date serviceEstablishmentBusinessDate) {
+    public void setServiceEstablishmentBusinessDate(LocalDate serviceEstablishmentBusinessDate) {
         this.serviceEstablishmentBusinessDate = serviceEstablishmentBusinessDate;
     }
 
     @JsonProperty("TLRR_AMEX_PROCESS_DATE")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date processingDate;
-    @Field(offset=53,length=7,align=Align.RIGHT,paddingChar = '0')        //  getProcessingDate()
+    private LocalDate processingDate;
+    @Field(offset=53,length=7,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)        //  getProcessingDate()
     @FixedFormatPattern("yyyyDDD")
-    public Date getProcessingDate() {
+    public LocalDate getProcessingDate() {
         return processingDate;
     }
-    public void setProcessingDate(Date processingDate) {
+    public void setProcessingDate(LocalDate processingDate) {
         this.processingDate = processingDate;
     }
 
@@ -228,13 +229,13 @@ public class ROCRecord {
     @JsonProperty("TLRR_TRAN_DATE")
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date transactionDate;
-    @Field(offset=147,length=7,align=Align.RIGHT,paddingChar = '0')        //  getTransactionDate()	@FixedFormatPattern("yyyyDDD")
+    private LocalDate transactionDate;
+    @Field(offset=147,length=7,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)        //  getTransactionDate()	@FixedFormatPattern("yyyyDDD")
     @FixedFormatPattern("yyyyDDD")
-    public Date getTransactionDate() {
+    public LocalDate getTransactionDate() {
         return transactionDate;
     }
-    public void setTransactionDate(Date transactionDate) {
+    public void setTransactionDate(LocalDate transactionDate) {
         this.transactionDate = transactionDate;
     }
 

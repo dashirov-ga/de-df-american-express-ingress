@@ -2,16 +2,13 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN;
 
 import com.ancientprogramming.fixedformat4j.annotation.*;
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.*;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Record(length = 450)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -129,26 +126,26 @@ public class SOCRecord {
     @NotNull
     @JsonProperty("SE_BUSINESS_DATE")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private Date serviceEstablishmentBusinessDate;
-    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0')        //  getServiceEstablishmentBusinessDate()
+    private LocalDate serviceEstablishmentBusinessDate;
+    @Field(offset=46,length=7,align=Align.RIGHT,paddingChar = '0',formatter = LocalDateFormatter.class)        //  getServiceEstablishmentBusinessDate()
     @FixedFormatPattern("yyyyDDD")
-    public Date getServiceEstablishmentBusinessDate() {
+    public LocalDate getServiceEstablishmentBusinessDate() {
         return serviceEstablishmentBusinessDate;
     }
-    public void setServiceEstablishmentBusinessDate(Date serviceEstablishmentBusinessDate) {
+    public void setServiceEstablishmentBusinessDate(LocalDate serviceEstablishmentBusinessDate) {
         this.serviceEstablishmentBusinessDate = serviceEstablishmentBusinessDate;
     }
 
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @JsonProperty("AMEX_PROCESS_DATE")
-    private Date amexProcessDate;
-    @Field(offset=53,length=7,align=Align.RIGHT,paddingChar = '0')        //  getAmexProcessDate()
+    private LocalDate amexProcessDate;
+    @Field(offset=53,length=7,align=Align.RIGHT,paddingChar = '0',formatter = LocalDateFormatter.class)        //  getAmexProcessDate()
     @FixedFormatPattern("yyyyDDD")
-    public Date getAmexProcessDate() {
+    public LocalDate getAmexProcessDate() {
         return amexProcessDate;
     }
-    public void setAmexProcessDate(Date amexProcessDate) {
+    public void setAmexProcessDate(LocalDate amexProcessDate) {
         this.amexProcessDate = amexProcessDate;
     }
 
@@ -300,9 +297,18 @@ public class SOCRecord {
     public BigDecimal getAmexRocCountPoa() {
         return amexRocCountPoa;
     }
-
     public void setAmexRocCountPoa(BigDecimal amexRocCountPoa) {
         this.amexRocCountPoa = amexRocCountPoa;
+    }
+
+    @JsonIgnore
+    public LocalDate getPaymentDate(){
+        return LocalDate.ofYearDay(this.getPaymentYear(),Integer.valueOf(this.getPaymentNumber().substring(0,3)));
+    }
+
+    @JsonIgnore
+    public Integer getPaymentCheckNumber(){
+        return Integer.valueOf(this.getPaymentNumber().substring(4,8));
     }
 
     public SOCRecord parse(FixedFormatManager manager, String line){
