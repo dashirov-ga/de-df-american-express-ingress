@@ -28,7 +28,30 @@
         <tag>HEAD</tag>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>com.snowplowanalytics</id>
+            <name>SnowPlow Analytics</name>
+            <url>http://maven.snplow.com/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>redshift</id>
+            <url>http://redshift-maven-repository.s3-website-us-east-1.amazonaws.com/release</url>
+        </repository>
+        <repository>
+            <id>Codehaus Mojo</id>
+            <name>Codehaus Mojo</name>
+            <url>https://nexus.codehaus.org/content/repositories/releases/</url>
+        </repository>
+    </repositories>
 
+<!--
     <repositories>
         <repository>
             <id>general-assembly</id>
@@ -48,7 +71,7 @@
             <url>http://ec2-52-23-211-85.compute-1.amazonaws.com:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
-
+-->
 
     <build>
         <resources>
@@ -88,7 +111,7 @@
                     </archive>
                 </configuration>
             </plugin>
-            <plugin>
+            <!--<plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <version>1.4</version>
@@ -104,7 +127,7 @@
                     <doCheck>true</doCheck>
                     <doUpdate>true</doUpdate>
                 </configuration>
-            </plugin>
+            </plugin>-->
 
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

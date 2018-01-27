@@ -28,6 +28,9 @@ import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParser;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParserOutput;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFileParserFactory;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RunID;
@@ -368,7 +371,11 @@ public class FeedHandler {
                 String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
                 String line;
                 LOGGER.debug("Pricessing {}", uniqueFileId);
-                if (type.equals("EPTRN")) {
+
+                AmexFeedFileParser feedFileParser = AmexFileParserFactory.getFeedFileParser(type);
+                AmexFeedFileParserOutput parserOutput = feedFileParser.parseFile(inputFile);
+
+                /*if (type.equals("EPTRN")) {
                     DataFileHeader header = null;
                     List<Summary> summaries = new ArrayList<>();
                     List<SOCDetail> socDetails = new ArrayList<>();
@@ -527,9 +534,9 @@ public class FeedHandler {
                             ).build()
                     );
 
-                }
+                }*/
             }
-        } catch (IOException | java.text.ParseException e) {
+        } catch (Exception e) {
             // had trouble reading input or creating temp files for the output. Abort the job.
             track(
                     Unstructured.builder().eventData(
