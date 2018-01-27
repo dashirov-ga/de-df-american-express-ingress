@@ -14,9 +14,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateTimeFormatter;
 
 import javax.validation.constraints.Size;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * Created by davidashirov on 12/4/17.
@@ -30,7 +31,7 @@ import java.util.Date;
         "NAME",
         "VERSION_CONTROL_NUMBER"
 })
-@Record
+@Record(length = 440)
 public class Header {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
@@ -40,7 +41,7 @@ public class Header {
     @javax.validation.constraints.NotNull
     private String recordType;
 
-    @Field(offset=1,length=6,align= Align.LEFT,paddingChar = ' ')        //  getRecordType
+    @Field(offset=1,length=6,align= Align.LEFT)        //  getRecordType
     public String getRecordType() {
         return recordType;
     }
@@ -49,33 +50,21 @@ public class Header {
     }
 
     @JsonProperty("DATE")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @Size(max = 8)
     @javax.validation.constraints.NotNull
-    private Date date;
+    private LocalDateTime date;
 
-    @FixedFormatPattern("yyyyMMdd")
-    @Field(offset=7,length=8,align=Align.LEFT,paddingChar = ' ')        //  getDate
-    public Date getDate() {
+    @FixedFormatPattern("yyyyMMddHHmm")
+    @Field(offset=7,length=12,align=Align.LEFT,formatter = LocalDateTimeFormatter.class)        //  getDate
+    public LocalDateTime getDate() {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(LocalDateTime date) {
         this.date = date;
     }
 
-    @JsonProperty("TIME")
-    @Size(max = 4)
-    @javax.validation.constraints.NotNull
-    private String time;
-
-    @Field(offset=15,length=4,align=Align.LEFT,paddingChar = ' ')        //  getTime
-    public String getTime() {
-        return time;
-    }
-    public void setTime(String time) {
-        this.time = time;
-    }
 
     @JsonProperty("ID")
     @Size(max = 6)
@@ -146,8 +135,7 @@ public class Header {
 
     public static final class Builder {
         private String recordType;
-        private Date date;
-        private String time;
+        private LocalDateTime date;
         private String id;
         private String name;
         private String versionControlNumber;
@@ -164,13 +152,8 @@ public class Header {
             return this;
         }
 
-        public Builder withDate(Date date) {
+        public Builder withDate(LocalDateTime date) {
             this.date = date;
-            return this;
-        }
-
-        public Builder withTime(String time) {
-            this.time = time;
             return this;
         }
 
@@ -190,14 +173,13 @@ public class Header {
         }
 
         public Builder but() {
-            return aFileHeaderRecord().withRecordType(recordType).withDate(date).withTime(time).withId(id).withName(name).withVersionControlNumber(versionControlNumber);
+            return aFileHeaderRecord().withRecordType(recordType).withDate(date).withId(id).withName(name).withVersionControlNumber(versionControlNumber);
         }
 
         public Header build() {
             Header fileHeaderRecord = new Header();
             fileHeaderRecord.setRecordType(recordType);
             fileHeaderRecord.setDate(date);
-            fileHeaderRecord.setTime(time);
             fileHeaderRecord.setId(id);
             fileHeaderRecord.setName(name);
             fileHeaderRecord.setVersionControlNumber(versionControlNumber);

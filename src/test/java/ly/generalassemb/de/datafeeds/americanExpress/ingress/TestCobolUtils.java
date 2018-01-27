@@ -11,6 +11,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -166,8 +169,8 @@ public class TestCobolUtils {
     public void testAnnotations(){
         AdjustmentRecord b =
                 AdjustmentRecord.Builder.anAdjustmentRecord()
-                        .withAdjustmentMessageDescription("Desc").
-                        withSettlementDate(new Date()).build();
+                        .withAdjustmentMessageDescription("Desc")
+                        .withSettlementDate(LocalDate.now()).build();
         CsvMapper mapper = new CsvMapper();
         CsvSchema schema = mapper.schemaFor(AdjustmentRecord.class).withColumnSeparator(',').withHeader();
         ObjectWriter myObjectWriter = mapper.writer(schema);

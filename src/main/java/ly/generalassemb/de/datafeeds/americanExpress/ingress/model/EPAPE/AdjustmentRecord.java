@@ -8,9 +8,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Date;
 
 /**
@@ -77,7 +79,7 @@ public class AdjustmentRecord {
     @JsonProperty("SETTLEMENT_DATE")
     @Size(max = 8)
     @javax.validation.constraints.NotNull
-    private Date settlementDate;
+    private LocalDate settlementDate;
 
     @JsonProperty("SUBMISSION_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -178,11 +180,11 @@ public class AdjustmentRecord {
     }
 
     @FixedFormatPattern("yyyyMMdd")
-    @Field(offset=14,length=8,align=Align.RIGHT,paddingChar = '0')
-    public Date getSettlementDate() {
+    @Field(offset=14,length=8,align=Align.RIGHT,paddingChar = '0', formatter = LocalDateFormatter.class)
+    public LocalDate getSettlementDate() {
         return settlementDate;
     }
-    public void setSettlementDate(Date settlementDate) {
+    public void setSettlementDate(LocalDate settlementDate) {
         this.settlementDate = settlementDate;
     }
 
@@ -366,7 +368,7 @@ public class AdjustmentRecord {
         private String paymentId;
         private String settlementSeAccountNumber;
         private String settlementAccountNameCode;
-        private Date settlementDate;
+        private LocalDate settlementDate;
         private String submissionSeAccountNumber;
         private Integer recordCode;
         private String recordSubCode;
@@ -407,7 +409,7 @@ public class AdjustmentRecord {
             return this;
         }
 
-        public Builder withSettlementDate(Date settlementDate) {
+        public Builder withSettlementDate(LocalDate settlementDate) {
             this.settlementDate = settlementDate;
             return this;
         }

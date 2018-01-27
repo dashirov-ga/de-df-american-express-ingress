@@ -15,12 +15,12 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
+import java.time.LocalDate;
 
 /**
  * Created by davidashirov on 12/2/17.
@@ -105,7 +105,7 @@ public class ROCRecord {
     @JsonProperty("CHARGE_DATE")
     @Size(max = 8)
     @NotNull
-    private Date chargeDate;
+    private LocalDate chargeDate;
 
     @JsonProperty("ROC_REFERENCE_NUMBER")
     @Size(max = 12)
@@ -199,12 +199,12 @@ public class ROCRecord {
     }
 
     @FixedFormatPattern("yyyyMMdd")
-    @Field(offset = 52, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getChargeDate
-    public Date getChargeDate() {
+    @Field(offset = 52, length = 8, align = Align.RIGHT, paddingChar = '0', formatter = LocalDateFormatter.class)        //  getChargeDate
+    public LocalDate getChargeDate() {
         return chargeDate;
     }
 
-    public void setChargeDate(Date chargeDate) {
+    public void setChargeDate(LocalDate chargeDate) {
         this.chargeDate = chargeDate;
     }
 
@@ -300,7 +300,7 @@ public class ROCRecord {
         private Integer recordCode;
         private String recordSubCode;
         private BigDecimal chargeAmount;
-        private Date chargeDate;
+        private LocalDate chargeDate;
         private String rocReferenceNumber;
         private String rocReferenceNumberCpcOnly;
         private String threeDigitChargeAuthorizationCode;
@@ -355,7 +355,7 @@ public class ROCRecord {
             return this;
         }
 
-        public Builder withChargeDate(Date chargeDate) {
+        public Builder withChargeDate(LocalDate chargeDate) {
             this.chargeDate = chargeDate;
             return this;
         }

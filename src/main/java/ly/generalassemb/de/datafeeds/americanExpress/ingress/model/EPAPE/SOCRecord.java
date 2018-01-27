@@ -12,11 +12,12 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -90,7 +91,7 @@ public class SOCRecord {
     @JsonProperty("SETTLEMENT_DATE")
     @Size(max = 8)
     @NotNull
-    private Date settlementDate;
+    private LocalDate settlementDate;
 
     @JsonProperty("SUBMISSION_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -111,7 +112,7 @@ public class SOCRecord {
     @JsonProperty("SOC_DATE")
     @Size(max = 8)
     @NotNull
-    private Date socDate;
+    private LocalDate socDate;
 
     @JsonProperty("SUBMISSION_CALCULATED_GROSS_AMOUNT")
     @Size(max = 15)
@@ -205,12 +206,12 @@ public class SOCRecord {
     }
 
     @FixedFormatPattern("yyyyMMdd")
-    @Field(offset = 14, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSettlementDate
-    public Date getSettlementDate() {
+    @Field(offset = 14, length = 8, align = Align.RIGHT, paddingChar = '0', formatter = LocalDateFormatter.class)        //  getSettlementDate
+    public LocalDate getSettlementDate() {
         return settlementDate;
     }
 
-    public void setSettlementDate(Date settlementDate) {
+    public void setSettlementDate(LocalDate settlementDate) {
         this.settlementDate = settlementDate;
     }
 
@@ -243,12 +244,12 @@ public class SOCRecord {
 
 
     @FixedFormatPattern("yyyyMMdd")
-    @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0')        //  getSocDate
-    public Date getSocDate() {
+    @Field(offset = 41, length = 8, align = Align.RIGHT, paddingChar = '0', formatter = LocalDateFormatter.class)        //  getSocDate
+    public LocalDate getSocDate() {
         return socDate;
     }
 
-    public void setSocDate(Date socDate) {
+    public void setSocDate(LocalDate socDate) {
         this.socDate = socDate;
     }
 
@@ -446,12 +447,12 @@ public class SOCRecord {
         private String paymentId;
         private String settlementSeAccountNumber;
         private String settlementAccountNameCode;
-        private Date settlementDate;
+        private LocalDate settlementDate;
         private String submissionSeAccountNumber;
 
         private Integer recordCode;
         private String recordSubCode;
-        private Date socDate;
+        private LocalDate socDate;
         private BigDecimal submissionCalculatedGrossAmount;
         private BigDecimal submissionDeclaredGrossAmount;
         private BigDecimal discountAmount;
@@ -490,7 +491,7 @@ public class SOCRecord {
             return this;
         }
 
-        public Builder withSettlementDate(Date settlementDate) {
+        public Builder withSettlementDate(LocalDate settlementDate) {
             this.settlementDate = settlementDate;
             return this;
         }
@@ -510,7 +511,7 @@ public class SOCRecord {
             return this;
         }
 
-        public Builder withSocDate(Date socDate) {
+        public Builder withSocDate(LocalDate socDate) {
             this.socDate = socDate;
             return this;
         }

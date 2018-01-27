@@ -472,6 +472,26 @@
                 <exec.mainClass>${smokeMainClass}</exec.mainClass>
             </properties>
         </profile>
+        <profile>
+            <id>newrelic</id>
+            <properties>
+                <newrelicJavaAgentVersion>3.46.0</newrelicJavaAgentVersion>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.newrelic.agent.java</groupId>
+                    <artifactId>newrelic-agent</artifactId>
+                    <version>${newrelicJavaAgentVersion}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.newrelic.agent.java</groupId>
+                    <artifactId>newrelic-api</artifactId>
+                    <version>${newrelicJavaAgentVersion}</version>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 
 

@@ -14,9 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-
-import javax.validation.constraints.Size;
-import java.util.Date;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateTimeFormatter;
+import java.time.LocalDateTime;
 
 /**
  * Created by davidashirov on 12/4/17.
@@ -32,13 +31,12 @@ import java.util.Date;
         "RECORD_COUNT"
 
 })
-@Record
+@Record(length = 440)
 public class Trailer {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
 
     @JsonProperty("RECORD_TYPE")
-    @Size(max = 6)
     @javax.validation.constraints.NotNull
     private String recordType;
 
@@ -51,36 +49,20 @@ public class Trailer {
     }
 
     @JsonProperty("DATE")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    @Size(max = 8)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @javax.validation.constraints.NotNull
-    private Date date;
-
-    @FixedFormatPattern("yyyyMMdd")
-    @Field(offset=7,length=8,align=Align.LEFT)        //  getDate
-    private Date getDate() {
+    private LocalDateTime date;
+    @FixedFormatPattern("yyyyMMddHHmm")
+    @Field(offset=7,length=12,align=Align.LEFT, formatter = LocalDateTimeFormatter.class)        //  getDate
+    public LocalDateTime getDate() {
         return date;
     }
-
-    public void setDate(Date date) {
+    public void setDate(LocalDateTime date) {
         this.date = date;
     }
 
-    @JsonProperty("TIME")
-    @Size(max = 4)
-    @javax.validation.constraints.NotNull
-    private String time;
-
-    @Field(offset=15,length=4,align=Align.LEFT)        //  getTime
-    private String getTime() {
-        return time;
-    }
-    public void setTime(String time) {
-        this.time = time;
-    }
 
     @JsonProperty("ID")
-    @Size(max = 6)
     @javax.validation.constraints.NotNull
     private String id;
 
@@ -94,7 +76,6 @@ public class Trailer {
     }
 
     @JsonProperty("NAME")
-    @Size(max = 19)
     @javax.validation.constraints.NotNull
     private String name;
 
@@ -107,7 +88,6 @@ public class Trailer {
     }
 
     @JsonProperty("RECIPIENT_KEY")
-    @Size(max = 40)
     @javax.validation.constraints.NotNull
     private String recipientKey;
 
@@ -121,7 +101,6 @@ public class Trailer {
     }
 
     @JsonProperty("RECORD_COUNT")
-    @Size(max = 7)
     @javax.validation.constraints.NotNull
     private Integer recordCount;
 
@@ -162,8 +141,7 @@ public class Trailer {
 
     public static final class Builder {
         private String recordType;
-        private Date date;
-        private String time;
+        private LocalDateTime date;
         private String id;
         private String name;
         private String recipientKey;
@@ -181,15 +159,12 @@ public class Trailer {
             return this;
         }
 
-        public Builder withDate(Date date) {
+        public Builder withDate(LocalDateTime date) {
             this.date = date;
             return this;
         }
 
-        public Builder withTime(String time) {
-            this.time = time;
-            return this;
-        }
+
 
         public Builder withId(String id) {
             this.id = id;
@@ -212,14 +187,13 @@ public class Trailer {
         }
 
         public Builder but() {
-            return aFileTrailerRecord().withRecordType(recordType).withDate(date).withTime(time).withId(id).withName(name).withRecipientKey(recipientKey).withRecordCount(recordCount);
+            return aFileTrailerRecord().withRecordType(recordType).withDate(date).withId(id).withName(name).withRecipientKey(recipientKey).withRecordCount(recordCount);
         }
 
         public Trailer build() {
             Trailer fileTrailerRecord = new Trailer();
             fileTrailerRecord.setRecordType(recordType);
             fileTrailerRecord.setDate(date);
-            fileTrailerRecord.setTime(time);
             fileTrailerRecord.setId(id);
             fileTrailerRecord.setName(name);
             fileTrailerRecord.setRecipientKey(recipientKey);

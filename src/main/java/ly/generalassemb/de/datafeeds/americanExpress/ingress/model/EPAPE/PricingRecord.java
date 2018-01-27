@@ -2,6 +2,7 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
 import com.ancientprogramming.fixedformat4j.annotation.Align;
 import com.ancientprogramming.fixedformat4j.annotation.Field;
+import com.ancientprogramming.fixedformat4j.annotation.FixedFormatDecimal;
 import com.ancientprogramming.fixedformat4j.annotation.Record;
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -16,7 +17,6 @@ import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNume
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Created by davidashirov on 12/1/17.
@@ -58,7 +58,7 @@ public class PricingRecord {
     @JsonProperty("RECORD_CODE")
     @Size(max = 1)
     @javax.validation.constraints.NotNull
-    private Integer recordCode;
+    private String recordCode;
 
     @JsonProperty("RECORD_SUB_CODE")
     @Size(max = 2)
@@ -73,7 +73,7 @@ public class PricingRecord {
     @JsonProperty("DISCOUNT_RATE")
     @Size(max = 7)
     @javax.validation.constraints.NotNull
-    private Integer discountRate;
+    private BigDecimal discountRate;
 
     @JsonProperty("FEE_PER_CHARGE")
     @Size(max = 15)
@@ -134,11 +134,11 @@ public class PricingRecord {
     }
 
     @Field(offset = 33, length = 1, align = Align.RIGHT, paddingChar = '0')//  getRecordCode
-    public Integer getRecordCode() {
+    public String getRecordCode() {
         return recordCode;
     }
 
-    public void setRecordCode(Integer recordCode) {
+    public void setRecordCode(String recordCode) {
         this.recordCode = recordCode;
     }
 
@@ -160,12 +160,13 @@ public class PricingRecord {
         this.pricingDescription = pricingDescription;
     }
 
-    @Field(offset = 100, length = 7, align = Align.RIGHT, paddingChar = '0')//  getDiscountRate
-    public Integer getDiscountRate() {
+    @Field(offset = 100, length = 7, align = Align.RIGHT, paddingChar = '0' )//  getDiscountRate
+    @FixedFormatDecimal(decimals = 5)
+    public BigDecimal getDiscountRate() {
         return discountRate;
     }
 
-    public void setDiscountRate(Integer discountRate) {
+    public void setDiscountRate(BigDecimal discountRate) {
         this.discountRate = discountRate;
     }
 
@@ -180,7 +181,7 @@ public class PricingRecord {
     }
 
     @Field(offset = 122, length = 5, align = Align.RIGHT, paddingChar = '0', formatter = AmexSignedNumericFixedFormatter.class)
-//  getNumberOfCharges
+    @FixedFormatDecimal(decimals = 0)
     public BigDecimal getNumberOfCharges() {
         return numberOfCharges;
     }
@@ -279,10 +280,10 @@ public class PricingRecord {
     public static final class Builder {
         private String settlementSeAccountNumber;
         private String settlementCurrencyCode;
-        private Integer recordCode;
+        private String recordCode;
         private String recordSubCode;
         private String pricingDescription;
-        private Integer discountRate;
+        private BigDecimal discountRate;
         private BigDecimal feePerCharge;
         private BigDecimal numberOfCharges;
         private BigDecimal grossAmount;
@@ -309,7 +310,7 @@ public class PricingRecord {
             return this;
         }
 
-        public Builder withRecordCode(Integer recordCode) {
+        public Builder withRecordCode(String recordCode) {
             this.recordCode = recordCode;
             return this;
         }
@@ -324,7 +325,7 @@ public class PricingRecord {
             return this;
         }
 
-        public Builder withDiscountRate(Integer discountRate) {
+        public Builder withDiscountRate(BigDecimal discountRate) {
             this.discountRate = discountRate;
             return this;
         }

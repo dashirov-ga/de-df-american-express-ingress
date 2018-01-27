@@ -2,22 +2,22 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPAPE;
 
 import com.ancientprogramming.fixedformat4j.annotation.*;
 import com.ancientprogramming.fixedformat4j.format.FixedFormatManager;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.AmexSignedNumericFixedFormatter;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.LocalDateFormatter;
 
 
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.UUID;
+
+import static java.time.temporal.ChronoField.YEAR;
 
 /**
  * Created by davidashirov on 12/1/17.
@@ -51,7 +51,7 @@ import java.util.UUID;
         "IBAN",
         "BIC"
 })
-@Record(length = 441)
+@Record(length = 440)
 public class PaymentRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
@@ -72,11 +72,12 @@ public class PaymentRecord {
     @javax.validation.constraints.NotNull
     private String settlementAccountNameCode;
 
+    // The date when the funds for this payment appear in your bank account - CCYYMMDD
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @JsonProperty("SETTLEMENT_DATE")
     @Size(max = 8)
     @javax.validation.constraints.NotNull
-    private Date settlementDate;
+    private LocalDate settlementDate;
 
 
     @JsonProperty("RECORD_CODE")
@@ -114,7 +115,7 @@ public class PaymentRecord {
     @JsonProperty("TAX_RATE")
     @Size(max = 7)
     @javax.validation.constraints.NotNull
-    private Integer taxRate;
+    private BigDecimal taxRate;
     @JsonProperty("SERVICE_FEE_AMOUNT")
     @Size(max = 15)
     @javax.validation.constraints.NotNull
@@ -123,7 +124,7 @@ public class PaymentRecord {
     @JsonProperty("SERVICE_FEE_RATE")
     @Size(max = 7)
     @javax.validation.constraints.NotNull
-    private Integer serviceFeeRate;
+    private BigDecimal serviceFeeRate;
 
     @JsonProperty("SETTLEMENT_ADJUSTMENT_AMOUNT")
     @Size(max = 15)
@@ -169,9 +170,9 @@ public class PaymentRecord {
         return settlementAccountNameCode;
     }
 
-    @Field(offset = 14, length = 8, align = Align.RIGHT, paddingChar = '0')
+    @Field(offset = 14, length = 8, align = Align.RIGHT, paddingChar = '0',formatter = LocalDateFormatter.class)
     @FixedFormatPattern("yyyyMMdd")
-    public Date getSettlementDate() {
+    public LocalDate getSettlementDate() {
         return settlementDate;
     }
 
@@ -212,7 +213,8 @@ public class PaymentRecord {
     }
 
     @Field(offset = 121, length = 7, align = Align.RIGHT, paddingChar = '0')
-    public Integer getTaxRate() {
+    @FixedFormatDecimal(decimals = 5)
+    public BigDecimal getTaxRate() {
         return taxRate;
     }
 
@@ -222,7 +224,8 @@ public class PaymentRecord {
     }
 
     @Field(offset = 158, length = 7, align = Align.RIGHT, paddingChar = '0')
-    public Integer getServiceFeeRate() {
+    @FixedFormatDecimal(decimals = 5)
+    public BigDecimal getServiceFeeRate() {
         return serviceFeeRate;
     }
 
@@ -274,7 +277,7 @@ public class PaymentRecord {
         this.settlementAccountNameCode = settlementAccountNameCode;
     }
 
-    public void setSettlementDate(Date settlementDate) {
+    public void setSettlementDate(LocalDate settlementDate) {
         this.settlementDate = settlementDate;
     }
 
@@ -306,7 +309,7 @@ public class PaymentRecord {
         this.taxAmount = taxAmount;
     }
 
-    public void setTaxRate(Integer taxRate) {
+    public void setTaxRate(BigDecimal taxRate) {
         this.taxRate = taxRate;
     }
 
@@ -314,7 +317,7 @@ public class PaymentRecord {
         this.serviceFeeAmount = serviceFeeAmount;
     }
 
-    public void setServiceFeeRate(Integer serviceFeeRate) {
+    public void setServiceFeeRate(BigDecimal serviceFeeRate) {
         this.serviceFeeRate = serviceFeeRate;
     }
 
@@ -350,13 +353,23 @@ public class PaymentRecord {
         this.bic = bic;
     }
 
+    @JsonIgnore
+    public Integer getPaymentYear(){
+        return getSettlementDate().get(YEAR);
+    }
+
+    @JsonIgnore
+    public LocalDate getPaymentDate(){
+        return this.getSettlementDate();
+    }
+
     @Override
     public String toString() {
         try {
             return jsonMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object) this).toString();
+            return super.toString();
         }
     }
 
@@ -406,7 +419,7 @@ public class PaymentRecord {
     public static final class Builder {
         private String settlementSeAccountNumber;
         private String settlementAccountNameCode;
-        private Date settlementDate;
+        private LocalDate settlementDate;
 
         private Integer recordCode;
         private String recordSubCode;
@@ -416,9 +429,9 @@ public class PaymentRecord {
         private String seBankAccountNumber;
         private BigDecimal settlementGrossAmount;
         private BigDecimal taxAmount;
-        private Integer taxRate;
+        private BigDecimal taxRate;
         private BigDecimal serviceFeeAmount;
-        private Integer serviceFeeRate;
+        private BigDecimal serviceFeeRate;
         private BigDecimal settlementAdjustmentAmount;
         private String payPlanShortName;
         private String payeeName;
@@ -445,7 +458,7 @@ public class PaymentRecord {
             return this;
         }
 
-        public Builder withSettlementDate(Date settlementDate) {
+        public Builder withSettlementDate(LocalDate settlementDate) {
             this.settlementDate = settlementDate;
             return this;
         }
@@ -485,7 +498,7 @@ public class PaymentRecord {
             return this;
         }
 
-        public Builder withTaxRate(Integer taxRate) {
+        public Builder withTaxRate(BigDecimal taxRate) {
             this.taxRate = taxRate;
             return this;
         }
@@ -495,7 +508,7 @@ public class PaymentRecord {
             return this;
         }
 
-        public Builder withServiceFeeRate(Integer serviceFeeRate) {
+        public Builder withServiceFeeRate(BigDecimal serviceFeeRate) {
             this.serviceFeeRate = serviceFeeRate;
             return this;
         }
