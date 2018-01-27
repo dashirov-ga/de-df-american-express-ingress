@@ -64,3 +64,4 @@ docs/
 /src/test/resources/df-american-express-ingress-test.properties
 
 de-df-american-express-ingress.iml
+src/main/resources/newrelic/
