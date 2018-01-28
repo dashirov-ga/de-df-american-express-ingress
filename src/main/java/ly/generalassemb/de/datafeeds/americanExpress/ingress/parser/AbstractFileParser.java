@@ -29,7 +29,7 @@ public class AbstractFileParser implements AmexFeedFileParser {
                 for (AmexFeedLineParser parser : parsers) {
                     AmexFeedLineParserOutput lineParserOutput = parser.parse(line);
                     if (lineParserOutput != null) {
-                        output.addParsedContent(parser.getClass(), lineParserOutput);
+                        output.addParsedContent(lineParserOutput.getAmexRecordType(), lineParserOutput);
                         break;
                     }
                 }

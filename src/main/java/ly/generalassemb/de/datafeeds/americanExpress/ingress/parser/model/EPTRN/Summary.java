@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
 import javax.validation.constraints.Size;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedLineParserOutput;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -233,5 +234,10 @@ public class Summary implements AmexFeedLineParserOutput {
                 .append(getPaymentNumber()).append(getRecordType()).append(getDetailRecordType())
                 .append(getPaymentDate()).append(getPaymentAmount()).append(getDebitBalanceAmount())
                 .append(getAbaBankNumber()).append(getPayeeDirectDepositAccountNumber()).toHashCode();
+    }
+
+    @Override
+    public AmexRecorType getAmexRecordType() {
+        return AmexRecorType.EPTRN_SUMMARY;
     }
 }

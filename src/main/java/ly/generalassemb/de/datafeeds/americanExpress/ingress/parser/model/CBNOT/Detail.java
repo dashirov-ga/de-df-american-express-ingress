@@ -17,6 +17,7 @@ import java.util.Locale;
 import javax.money.MonetaryAmount;
 import javax.money.format.MonetaryAmountFormat;
 import javax.money.format.MonetaryFormats;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedLineParserOutput;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -888,4 +889,8 @@ public class Detail implements AmexFeedLineParserOutput {
         }
     }
 
+    @Override
+    public AmexRecorType getAmexRecordType() {
+        return AmexRecorType.CBNOT_DETAIL;
+    }
 }
