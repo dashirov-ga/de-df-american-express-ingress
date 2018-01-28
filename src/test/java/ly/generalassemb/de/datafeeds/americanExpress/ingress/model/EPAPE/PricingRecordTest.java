@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -163,6 +165,9 @@ public class PricingRecordTest {
 }
 
     @Test
-    public void toJson() {
+    public void toJson() throws JsonProcessingException, JSONException {
+        String exactMatchRequired = "{\"SETTLEMENT_SE_ACCOUNT_NUMBER\":\"8918979531\",\"SETTLEMENT_CURRENCY_CODE\":\"USD\",\"RECORD_CODE\":\"1\",\"RECORD_SUB_CODE\":\"10\",\"PRICING_DESCRIPTION\":\"Charge\",\"DISCOUNT_RATE\":0.03300,\"FEE_PER_CHARGE\":0.00,\"NUMBER_OF_CHARGES\":5,\"GROSS_AMOUNT\":2274.06,\"GROSS_DEBIT_AMOUNT\":2619.10,\"GROSS_CREDEIT_AMOUNT\":-345.04,\"DISCOUNT_FEE\":-75.05,\"SERVICE_FEE\":0.00,\"NET_AMOUNT\":2199.01,\"GENERATED_PAYMENT_NUMBER\":null}";
+        JSONObject test = new JSONObject(mapper.writeValueAsString(pricingRecord1));
+        JSONAssert.assertEquals(exactMatchRequired, test, true);
     }
 }

@@ -141,11 +141,16 @@ public class EPAPEFixedWidthDataFile extends S3CapableFWDF {
                         currentReconciledPayment.put(new PaymentRecord().parse(manager, line));
                     } else if ("110".equals(dtIndicator)) {
                         // pricing summary
-                        currentReconciledPayment.put(new PricingRecord().parse(manager, line));
+                        PricingRecord pricingRecord = new PricingRecord().parse(manager, line);
+                        // TODO: Pricing record unit tests can't know ahead of time what payment record id they belong to
+                        pricingRecord.setPaymentId(currentReconciledPayment.getPaymentSummary().getPaymentId());
+                        currentReconciledPayment.put(pricingRecord);
+
                     } else {
                         if ("210".equals(dtIndicator)) {
                             // summary of charge
                             SOCRecord soc = new SOCRecord().parse(manager, line);
+                            // TODO: SOC record unit tests can't know ahead of time what payment record id they belong to
                             soc.setPaymentId(currentReconciledPayment.getPaymentSummary().getPaymentId());
                             // SOC always opens a new submission!
 

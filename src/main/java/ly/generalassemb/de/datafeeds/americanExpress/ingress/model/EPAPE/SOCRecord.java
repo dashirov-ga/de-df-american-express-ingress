@@ -54,7 +54,7 @@ import java.util.UUID;
 
         "EXCHANGE_RATE"
 })
-@Record(length = 441)
+@Record(length = 440)
 public class SOCRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
@@ -395,7 +395,7 @@ public class SOCRecord {
             return jsonMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            return ((Object) this).toString();
+            return super.toString();
         }
     }
 

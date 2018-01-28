@@ -25,7 +25,6 @@ import java.math.BigDecimal;
 @JsonPropertyOrder({
         "SETTLEMENT_SE_ACCOUNT_NUMBER",
         "SETTLEMENT_CURRENCY_CODE",
-
         "RECORD_CODE",
         "RECORD_SUB_CODE",
         "PRICING_DESCRIPTION",
@@ -38,12 +37,21 @@ import java.math.BigDecimal;
         "DISCOUNT_FEE",
         "SERVICE_FEE",
         "NET_AMOUNT"
-
 })
 @Record(length = 441)
 public class PricingRecord {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final CsvMapper csvMapper = new CsvMapper();
+
+    @JsonProperty("GENERATED_PAYMENT_NUMBER")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private String paymentId;
+    public String getPaymentId() {
+        return paymentId;
+    }
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
 
     @JsonProperty("SETTLEMENT_SE_ACCOUNT_NUMBER")
     @Size(max = 10)
@@ -278,6 +286,7 @@ public class PricingRecord {
     }
 
     public static final class Builder {
+        private String paymentId;
         private String settlementSeAccountNumber;
         private String settlementCurrencyCode;
         private String recordCode;
@@ -298,6 +307,11 @@ public class PricingRecord {
 
         public static Builder aPricingRecord() {
             return new Builder();
+        }
+
+        public Builder withPaymentId(String paymentId) {
+            this.paymentId = paymentId;
+            return this;
         }
 
         public Builder withSettlementSeAccountNumber(String settlementSeAccountNumber) {
@@ -371,11 +385,12 @@ public class PricingRecord {
         }
 
         public Builder but() {
-            return aPricingRecord().withSettlementSeAccountNumber(settlementSeAccountNumber).withSettlementCurrencyCode(settlementCurrencyCode).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withPricingDescription(pricingDescription).withDiscountRate(discountRate).withFeePerCharge(feePerCharge).withNumberOfCharges(numberOfCharges).withGrossAmount(grossAmount).withGrossDebitAmount(grossDebitAmount).withGrossCredeitAmount(grossCredeitAmount).withDiscountFee(discountFee).withServiceFee(serviceFee).withNetAmount(netAmount);
+            return aPricingRecord().withSettlementSeAccountNumber(settlementSeAccountNumber).withPaymentId(paymentId).withSettlementCurrencyCode(settlementCurrencyCode).withRecordCode(recordCode).withRecordSubCode(recordSubCode).withPricingDescription(pricingDescription).withDiscountRate(discountRate).withFeePerCharge(feePerCharge).withNumberOfCharges(numberOfCharges).withGrossAmount(grossAmount).withGrossDebitAmount(grossDebitAmount).withGrossCredeitAmount(grossCredeitAmount).withDiscountFee(discountFee).withServiceFee(serviceFee).withNetAmount(netAmount);
         }
 
         public PricingRecord build() {
             PricingRecord pricingRecord = new PricingRecord();
+            pricingRecord.setPaymentId(paymentId);
             pricingRecord.setSettlementSeAccountNumber(settlementSeAccountNumber);
             pricingRecord.setSettlementCurrencyCode(settlementCurrencyCode);
             pricingRecord.setRecordCode(recordCode);
