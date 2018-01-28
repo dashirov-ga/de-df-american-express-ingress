@@ -61,3 +61,21 @@ buildNumber.properties
 /df-american-express-ingress.iml
 .idea/
 src/main/resources/df-american-express-ingress.properties
+docs
+
+
+de-df-american-express-ingress.iml
+docs/EMCBK sample test file_final.txt
+docs/EPAPE Fixed Fields.ots
+docs/EPAPE sample Delimited.txt
+docs/EPAPE sample Fixed.txt
+docs/EPTRN-Fields.xlsx
+docs/GENERALASSEMBLYA59662.CBNOT-E87HKNN37154R4
+docs/GENERALASSEMBLYA59662.CBNOT-M11HEJN2158XYS
+docs/GENERALASSEMBLYA59662.EPTRN-E88HI255114G43
+docs/GENERALASSEMBLYA59662.EPTRN-M15HFK42332SX6
+docs/GENERALASSEMBLYA60229.EMCBK#E87IA5G0654K48
+docs/GENERALASSEMBLYA60229.EPAPE#E87IA4N4426921
+docs/GENERALASSEMBLYA60229.EPAPE#E89IA7M5942WRJ
+src/main/resources/newrelic/
+src/test/resources/df-american-express-ingress-test.properties
