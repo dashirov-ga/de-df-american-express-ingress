@@ -16,7 +16,13 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
-import com.jcraft.jsch.*;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpATTRS;
+import com.jcraft.jsch.SftpException;
 import com.snowplowanalytics.snowplow.tracker.DevicePlatform;
 import com.snowplowanalytics.snowplow.tracker.Tracker;
 import com.snowplowanalytics.snowplow.tracker.emitter.BatchEmitter;
@@ -26,59 +32,57 @@ import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
 import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.EPTRN.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParser;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParserOutput;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFileParserFactory;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.serializer.AmexFeedFileSerializerFactory;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifest;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RedshiftManifestEntry;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.util.RunID;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.sql.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.Date;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * Created by dashirov on 5/10/17.
  */
 public class FeedHandler {
     private static final AtomicInteger eventCounter = new AtomicInteger(0);
-
-    private enum S3Prefix {
-        EPTRN("EPTRN", "EPTRN", ".dat"),
-        EPTRN_HEADER("EPTRN-HDR", "CSV", ".csv"),
-        EPTRN_TRAILER("EPTRN-TRL", "CSV", ".csv"),
-        EPTRN_SUMMARY("EPTRN-SUMMARY", "CSV", ".csv"),
-        EPTRN_SOC_DETAIL("EPTRN-SOC-DETAIL", "CSV", ".csv"),
-        EPTRN_ROC_DETAIL("EPTRN-ROC-DETAIL", "CSV", ".csv"),
-        EPTRN_ADJUSTMENT_DETAIL("EPTRN-ADJ-DETAIL", "CSV", ".csv"),
-        CBNOT_DETAIL("CBNOT-DETAIL", "CSV", ".csv"),
-        CBNOT("CBNOT", "CBNOT", ".dat");
-
-        private final String prefix;
-        private final String format;
-        private final String suffix;
-
-        S3Prefix(String prefix, String format, String suffix) {
-            this.prefix = prefix;
-            this.format = format;
-            this.suffix = suffix;
-        }
-    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FeedHandler.class);
     private static final Set<String> skipProcessingStepsSet = new TreeSet<>();
@@ -349,7 +353,7 @@ public class FeedHandler {
         // FILE PARSING STEP: All files are here, on a local file system. No SSH/SFTP communications.
         stepStart = new Date();
         runTimers.putIfAbsent("file-parse", stepStart);
-        Map<S3Prefix, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+        Map<AmexRecorType, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
         try {
             track(
                     Unstructured.builder().eventData(
@@ -364,172 +368,53 @@ public class FeedHandler {
             for (Map<String, Object> input : filesDownloaded) {
                 File inputFile = (File) input.get("file");
                 String type = (String) input.get("type");
-                BufferedReader reader = new BufferedReader(new FileReader(inputFile));
                 String uniqueFileId = inputFile.getName().substring(0, inputFile.getName().indexOf('-')).replaceAll("[#]", "-");
-                String line;
                 LOGGER.debug("Pricessing {}", uniqueFileId);
-                if (type.equals("EPTRN")) {
-                    DataFileHeader header = null;
-                    List<Summary> summaries = new ArrayList<>();
-                    List<SOCDetail> socDetails = new ArrayList<>();
-                    List<ROCDetail> rocDetails = new ArrayList<>();
-                    List<AdjustmentDetail> adjustmentDetails = new ArrayList<>();
-                    DataFileTrailer trailer = null;
-                    while ((line = reader.readLine()) != null) {
-                        LOGGER.debug("LINE:{}", line);
-                        Object record;
-                        if ((record = DataFileTrailer.parse(line)) != null) {
-                            trailer = (DataFileTrailer) record;
-                            LOGGER.debug(record.toString());
-                        } else if ((record = DataFileHeader.parse(line)) != null) {
-                            header = (DataFileHeader) record;
-                            LOGGER.debug(record.toString());
-                        } else if ((record = Summary.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            summaries.add((Summary) record);
-                        } else if ((record = ROCDetail.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            rocDetails.add((ROCDetail) record);
-                        } else if ((record = SOCDetail.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            socDetails.add((SOCDetail) record);
-                            System.out.println(((SOCDetail) record).toString());
-                        } else if ((record = AdjustmentDetail.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            adjustmentDetails.add((AdjustmentDetail) record);
-                        } else {
-                            LOGGER.error("None of the patterns matched! for this data line!");
+
+                AmexFeedFileParser feedFileParser = AmexFileParserFactory.getFeedFileParser(type);
+                AmexFeedFileParserOutput parserOutput = feedFileParser.parseFile(inputFile);
+
+                parserOutput.getFileContents().entrySet().forEach(entry -> {
+                    try {
+                        AmexRecorType recorType = entry.getKey();
+                        if (!"".equals(recorType.getFileNamePrefix())) {
+                            File serializedFile =
+                                    File.createTempFile(recorType.getFileNamePrefix() + runId + "-", ".csv");
+                            if (!skipProcessingStepsSet.contains("clean-local"))
+                                serializedFile.deleteOnExit();
+                            else
+                                LOGGER.debug("{} Type, CSV File: {}", recorType.name(),
+                                        serializedFile.getPath());
+
+                            AmexFeedFileSerializerFactory.getAmexFeedFileSerializerFor(recorType)
+                                    .writeCSVFile(serializedFile.getPath(), entry.getValue());
+                            List<AmazonS3URI> entries =
+                                    redshiftLoadable.computeIfAbsent(recorType, k -> new ArrayList<>());
+                            entries.add(uploadToDataLakeTask(packS3UploadParameters(
+                                    serializedFile.getAbsolutePath(), recorType, uniqueFileId)));
+
                         }
+                    } catch (Exception ex) {
+                        LOGGER.error(ex.getMessage(), ex);
+                        throw new RuntimeException(ex);
                     }
-                    // Every line in the file downloaded has been parsed, you have json and csv data available now
+                });
 
-                    track(
-                            Unstructured.builder().eventData(
-                                    new StepStatus()
-                                            .withRunId(runId)
-                                            .withName("s3-upload")
-                                            .withState(StepStatus.State.RUNNING)
-                                            .withStartedAt(stepStart)
-                                            .getSelfDescribingJson()
-                            ).build()
-                    );
+                uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), AmexRecorType.getAmexRecordTypeForFileType(type) , uniqueFileId));
 
-                    LOGGER.debug("Uploading to s3://{}", Paths.get(configuration.get().getString("sink.s3.bucket.name"), uniqueFileId));
-                    if (summaries.size() > 0) {
-                        File summaryFile = File.createTempFile("summary-" + runId + "-", ".csv");
-                        if (!skipProcessingStepsSet.contains("clean-local"))
-                            summaryFile.deleteOnExit();
-                        else
-                            LOGGER.debug("Summary CSV File: {}", summaryFile.getPath());
-                        Summary.writeCSVFile(summaryFile.getPath(), summaries);
-                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SUMMARY, k -> new ArrayList<>());
-                        entries.add(uploadToDataLakeTask(packS3UploadParameters(summaryFile.getAbsolutePath(), S3Prefix.EPTRN_SUMMARY, uniqueFileId)));
-
-                    }
-
-                    if (adjustmentDetails.size() > 0) {
-                        File adjustmentDetailsFile = File.createTempFile("adjustments-" + runId + "-", ".csv");
-                        if (!skipProcessingStepsSet.contains("clean-local"))
-                            adjustmentDetailsFile.deleteOnExit();
-                        else
-                            LOGGER.debug("Adjustment Details CSV File: {}", adjustmentDetailsFile.getPath());
-                        AdjustmentDetail.writeCSVFile(adjustmentDetailsFile.getPath(), adjustmentDetails);
-                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ADJUSTMENT_DETAIL, k -> new ArrayList<>());
-                        entries.add(uploadToDataLakeTask(packS3UploadParameters(adjustmentDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ADJUSTMENT_DETAIL, uniqueFileId)));
-                    }
-
-                    if (socDetails.size() > 0) {
-                        File socDetailsFile = File.createTempFile("socdetails-" + runId + "-", ".csv");
-                        if (!skipProcessingStepsSet.contains("clean-local"))
-                            socDetailsFile.deleteOnExit();
-                        else
-                            LOGGER.debug("SOC Details Details CSV File: {}", socDetailsFile.getPath());
-                        SOCDetail.writeCSVFile(socDetailsFile.getPath(), socDetails);
-                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_SOC_DETAIL, k -> new ArrayList<>());
-                        entries.add(uploadToDataLakeTask(packS3UploadParameters(socDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_SOC_DETAIL, uniqueFileId)));
-                    }
-
-                    if (rocDetails.size() > 0) {
-                        File rocDetailsFile = File.createTempFile("rocdetails-" + runId + "-", ".csv");
-                        if (!skipProcessingStepsSet.contains("clean-local"))
-                            rocDetailsFile.deleteOnExit();
-                        else
-                            LOGGER.debug("ROC Details Details CSV File: {}", rocDetailsFile.getPath());
-                        ROCDetail.writeCSVFile(rocDetailsFile.getPath(), rocDetails);
-                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.EPTRN_ROC_DETAIL, k -> new ArrayList<>());
-                        entries.add(uploadToDataLakeTask(packS3UploadParameters(rocDetailsFile.getAbsolutePath(), S3Prefix.EPTRN_ROC_DETAIL, uniqueFileId)));
-
-                    }
-
-                    uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.EPTRN, uniqueFileId));
-                    track(
-                            Unstructured.builder().eventData(
-                                    new StepStatus()
-                                            .withRunId(runId)
-                                            .withName("s3-upload")
-                                            .withState(StepStatus.State.COMPLETED)
-                                            .withStartedAt(stepStart)
-                                            .withEndedAt(new Date())
-                                            .getSelfDescribingJson()
-                            ).build()
-                    );
-
-                } else if (type.equals("CBNOT")) {
-                    ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader cbHeader = null;
-                    List<ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail> cbDetails = new ArrayList<>();
-                    ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer cbTrailer = null;
-
-                    while ((line = reader.readLine()) != null) {
-                        LOGGER.debug("LINE:{}", line);
-                        Object record;
-                        if ((record = ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            cbHeader = (ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileHeader) record;
-                        } else if ((record = ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            cbTrailer = (ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.DataFileTrailer) record;
-                        } else if ((record = Detail.parse(line)) != null) {
-                            LOGGER.debug(record.toString());
-                            cbDetails.add((Detail) record);
-                        }
-                    }
-                    track(
-                            Unstructured.builder().eventData(
-                                    new StepStatus()
-                                            .withRunId(runId)
-                                            .withName("s3-upload")
-                                            .withState(StepStatus.State.RUNNING)
-                                            .withStartedAt(stepStart)
-                                            .getSelfDescribingJson()
-                            ).build()
-                    );
-
-                    if (cbDetails.size() > 0) {
-                        File chargebackDetailsFile = File.createTempFile("chargebackdetails-" + runId + "-", ".csv");
-                        if (!skipProcessingStepsSet.contains("clean-local"))
-                            chargebackDetailsFile.deleteOnExit();
-                        else
-                            LOGGER.debug("Chargeback Details CSV File: {}", chargebackDetailsFile.getPath());
-                        Detail.writeCSVFile(chargebackDetailsFile.getPath(), cbDetails);
-                        List<AmazonS3URI> entries = redshiftLoadable.computeIfAbsent(S3Prefix.CBNOT_DETAIL, k -> new ArrayList<>());
-                        entries.add(uploadToDataLakeTask(packS3UploadParameters(chargebackDetailsFile.getAbsolutePath(), S3Prefix.CBNOT_DETAIL, uniqueFileId)));
-                    }
-                    uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), S3Prefix.CBNOT, uniqueFileId));
-                    track(
-                            Unstructured.builder().eventData(
-                                    new StepStatus()
-                                            .withRunId(runId)
-                                            .withName("s3-upload")
-                                            .withState(StepStatus.State.COMPLETED)
-                                            .withStartedAt(stepStart)
-                                            .withEndedAt(new Date())
-                                            .getSelfDescribingJson()
-                            ).build()
-                    );
-
-                }
+                track(
+                        Unstructured.builder().eventData(
+                                new StepStatus()
+                                        .withRunId(runId)
+                                        .withName("s3-upload")
+                                        .withState(StepStatus.State.COMPLETED)
+                                        .withStartedAt(stepStart)
+                                        .withEndedAt(new Date())
+                                        .getSelfDescribingJson()
+                        ).build()
+                );
             }
-        } catch (IOException | java.text.ParseException e) {
+        } catch (Exception e) {
             // had trouble reading input or creating temp files for the output. Abort the job.
             track(
                     Unstructured.builder().eventData(
@@ -574,7 +459,7 @@ public class FeedHandler {
                         ).build()
                 );
 
-                for (S3Prefix type : redshiftLoadable.keySet()) {
+                for (AmexRecorType type : redshiftLoadable.keySet()) {
                     if (redshiftLoadable.get(type).size() > 0) {
                         RedshiftManifest manifest = new RedshiftManifest();
                         for (AmazonS3URI file : redshiftLoadable.get(type)) {
@@ -636,7 +521,10 @@ public class FeedHandler {
 
     }
 
-    private static Map<String, Object> packS3UploadParameters(String localFilePath, S3Prefix type, String uniqueFileId) {
+    private static Map<String, Object> packS3UploadParameters(
+            String localFilePath,
+            AmexRecorType type,
+            String uniqueFileId) {
         Map<String, Object> uploadTask = new HashMap<>();
         uploadTask.put("file", localFilePath);
         uploadTask.put("id", uniqueFileId);
@@ -645,7 +533,7 @@ public class FeedHandler {
     }
 
     // This should take a manifest, not sql statement
-    private static void uploadToRedshiftTask(RedshiftManifest manifest, S3Prefix type) throws SQLException {
+    private static void uploadToRedshiftTask(RedshiftManifest manifest, AmexRecorType type) throws SQLException {
         // If s3 files were uploaded
         String key = Paths.get("manifest", runId, type.name() + ".json").toString();
         String bucket = configuration.get().getString("sink.s3.bucket.name");
@@ -778,11 +666,11 @@ public class FeedHandler {
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         String file = (String) fileMetadata.get("file");
-        S3Prefix constants = (S3Prefix) fileMetadata.get("type");
+        AmexRecorType constants = (AmexRecorType) fileMetadata.get("type");
         String fileId = (String) fileMetadata.get("id");
 
-        String format = constants.format;
-        String key = Paths.get(fileId, constants.prefix + constants.suffix).toString();
+        String format = constants.getFormat();
+        String key = Paths.get(fileId, constants.getPrefix() + constants.getSuffix()).toString();
 
         String bucket = configuration.get().getString("sink.s3.bucket.name");
 
