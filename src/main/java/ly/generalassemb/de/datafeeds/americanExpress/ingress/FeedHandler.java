@@ -32,7 +32,7 @@ import com.snowplowanalytics.snowplow.tracker.events.Unstructured;
 import com.snowplowanalytics.snowplow.tracker.http.OkHttpClientAdapter;
 import com.snowplowanalytics.snowplow.tracker.payload.TrackerPayload;
 import com.squareup.okhttp.OkHttpClient;
-import java.io.BufferedReader;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -59,7 +59,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecordType;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParser;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedFileParserOutput;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFileParserFactory;
@@ -353,7 +353,7 @@ public class FeedHandler {
         // FILE PARSING STEP: All files are here, on a local file system. No SSH/SFTP communications.
         stepStart = new Date();
         runTimers.putIfAbsent("file-parse", stepStart);
-        Map<AmexRecorType, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
+        Map<AmexRecordType, List<AmazonS3URI>> redshiftLoadable = new HashMap<>();
         try {
             track(
                     Unstructured.builder().eventData(
@@ -376,7 +376,7 @@ public class FeedHandler {
 
                 parserOutput.getFileContents().entrySet().forEach(entry -> {
                     try {
-                        AmexRecorType recorType = entry.getKey();
+                        AmexRecordType recorType = entry.getKey();
                         if (!"".equals(recorType.getFileNamePrefix())) {
                             File serializedFile =
                                     File.createTempFile(recorType.getFileNamePrefix() + runId + "-", ".csv");
@@ -400,7 +400,7 @@ public class FeedHandler {
                     }
                 });
 
-                uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), AmexRecorType.getAmexRecordTypeForFileType(type) , uniqueFileId));
+                uploadToDataLakeTask(packS3UploadParameters(inputFile.getAbsolutePath(), AmexRecordType.getAmexRecordTypeForFileType(type) , uniqueFileId));
 
                 track(
                         Unstructured.builder().eventData(
@@ -459,7 +459,7 @@ public class FeedHandler {
                         ).build()
                 );
 
-                for (AmexRecorType type : redshiftLoadable.keySet()) {
+                for (AmexRecordType type : redshiftLoadable.keySet()) {
                     if (redshiftLoadable.get(type).size() > 0) {
                         RedshiftManifest manifest = new RedshiftManifest();
                         for (AmazonS3URI file : redshiftLoadable.get(type)) {
@@ -523,7 +523,7 @@ public class FeedHandler {
 
     private static Map<String, Object> packS3UploadParameters(
             String localFilePath,
-            AmexRecorType type,
+            AmexRecordType type,
             String uniqueFileId) {
         Map<String, Object> uploadTask = new HashMap<>();
         uploadTask.put("file", localFilePath);
@@ -533,7 +533,7 @@ public class FeedHandler {
     }
 
     // This should take a manifest, not sql statement
-    private static void uploadToRedshiftTask(RedshiftManifest manifest, AmexRecorType type) throws SQLException {
+    private static void uploadToRedshiftTask(RedshiftManifest manifest, AmexRecordType type) throws SQLException {
         // If s3 files were uploaded
         String key = Paths.get("manifest", runId, type.name() + ".json").toString();
         String bucket = configuration.get().getString("sink.s3.bucket.name");
@@ -666,7 +666,7 @@ public class FeedHandler {
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         String file = (String) fileMetadata.get("file");
-        AmexRecorType constants = (AmexRecorType) fileMetadata.get("type");
+        AmexRecordType constants = (AmexRecordType) fileMetadata.get("type");
         String fileId = (String) fileMetadata.get("id");
 
         String format = constants.getFormat();

@@ -10,7 +10,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecordType;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedLineParserOutput;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -230,7 +230,7 @@ public class DataFileHeader implements AmexFeedLineParserOutput {
     }
 
     @Override
-    public AmexRecorType getAmexRecordType() {
-        return AmexRecorType.CBNOT_HEADER;
+    public AmexRecordType getAmexRecordType() {
+        return AmexRecordType.CBNOT_HEADER;
     }
 }

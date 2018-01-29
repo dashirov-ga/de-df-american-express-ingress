@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecordType;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.parser.AmexFeedLineParserOutput;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -238,7 +238,7 @@ public class DataFileTrailer implements AmexFeedLineParserOutput {
         }
     }
 
-    @Override public AmexRecorType getAmexRecordType() {
-        return AmexRecorType.CBNOT_FOOTER;
+    @Override public AmexRecordType getAmexRecordType() {
+        return AmexRecordType.CBNOT_FOOTER;
     }
 }

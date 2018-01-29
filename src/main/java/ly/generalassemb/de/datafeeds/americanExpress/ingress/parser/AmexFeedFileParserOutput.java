@@ -5,19 +5,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecorType;
+import ly.generalassemb.de.datafeeds.americanExpress.ingress.model.AmexRecordType;
 
 /**
  *
  */
 public class AmexFeedFileParserOutput {
-    private final Map<AmexRecorType, List<AmexFeedLineParserOutput>> fileContents = new HashMap<>();
+    private final Map<AmexRecordType, List<AmexFeedLineParserOutput>> fileContents = new HashMap<>();
 
-    public Map<AmexRecorType, List<AmexFeedLineParserOutput>> getFileContents() {
+    public Map<AmexRecordType, List<AmexFeedLineParserOutput>> getFileContents() {
         return ImmutableMap.copyOf(fileContents);
     }
 
-    public void addParsedContent(AmexRecorType type, AmexFeedLineParserOutput parsedLine) {
+    public void addParsedContent(AmexRecordType type, AmexFeedLineParserOutput parsedLine) {
         List<AmexFeedLineParserOutput> lines = fileContents.get(type);
         if (lines == null) {
             lines = new ArrayList<>();
