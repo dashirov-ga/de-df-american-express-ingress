@@ -387,29 +387,27 @@ public class PaymentRecord {
 
     public UUID uniqueCode() {
         return UUID.nameUUIDFromBytes(
-                new StringBuilder()
-                .append(settlementSeAccountNumber)
-                .append(settlementAccountNameCode)
-                .append(settlementDate)
-                .append(recordCode)
-                .append(recordSubCode)
-                .append(settlementAmount)
-                .append(seBankSortCode)
-                .append(seBankAccountNumber)
-                .append(settlementGrossAmount)
-                .append(taxAmount)
-                .append(taxRate)
-                .append(serviceFeeAmount)
-                .append(serviceFeeRate)
-                .append(settlementAdjustmentAmount)
-                .append(payPlanShortName)
-                .append(payeeName)
-                .append(settlementAccountNameCodeExtended)
-                .append(settlementCurrencyCode)
-                .append(previousDebitBalance)
-                .append(iban)
-                .append(bic)
-                .toString().getBytes()
+                (settlementSeAccountNumber +
+                        settlementAccountNameCode +
+                        settlementDate +
+                        recordCode +
+                        recordSubCode +
+                        settlementAmount +
+                        seBankSortCode +
+                        seBankAccountNumber +
+                        settlementGrossAmount +
+                        taxAmount +
+                        taxRate +
+                        serviceFeeAmount +
+                        serviceFeeRate +
+                        settlementAdjustmentAmount +
+                        payPlanShortName +
+                        payeeName +
+                        settlementAccountNameCodeExtended +
+                        settlementCurrencyCode +
+                        previousDebitBalance +
+                        iban +
+                        bic).getBytes()
         );
     }
 

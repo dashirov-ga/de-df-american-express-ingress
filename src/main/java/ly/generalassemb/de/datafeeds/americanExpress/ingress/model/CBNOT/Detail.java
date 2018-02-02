@@ -303,7 +303,7 @@ public class Detail {
 
     @JsonProperty("SOC_AMOUNT")
     private BigDecimal socAmount;
-    @Field(offset = 200, length = 17, align = Align.RIGHT, paddingChar = '0')
+    @Field(offset = 200, length = 17, align = Align.RIGHT)
     @FixedFormatDecimal(decimals = 2, useDecimalDelimiter = true, decimalDelimiter = '.')
     @FixedFormatNumber(sign = Sign.PREPEND, positiveSign = ' ', negativeSign = '-')
     public BigDecimal getSocAmount() {
@@ -591,7 +591,8 @@ public class Detail {
         Y("Support is coming via mail or fax"),
         I("A scanned image provides support"),
         R("Both forms of support to follow: Mail or fax, AND Scanned image"),
-        N("No support is being forwarded");
+        N("No support is being forwarded"),
+        U("Unknown, no indication was provided");
         private String description;
         SupportToFollow(String description) {
             this.description = description;
@@ -600,6 +601,8 @@ public class Detail {
 
     public static class SupportToFollowFormatter extends AbstractFixedFormatter<SupportToFollow> {
         public SupportToFollow asObject(String string, FormatInstructions instructions) {
+            if (string == null || string.equals(" ") || string.isEmpty())
+                return SupportToFollow.U;
             return SupportToFollow.valueOf(string);
         }
         public String asString(SupportToFollow enumeration, FormatInstructions instructions) {
@@ -614,6 +617,7 @@ public class Detail {
     public enum Resolution {
         Y(true, "Yes"),
         N(false, "No");
+
         private boolean aBoolean;
         private String aString;
 

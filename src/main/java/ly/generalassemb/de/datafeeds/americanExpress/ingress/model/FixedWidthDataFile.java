@@ -1,6 +1,8 @@
 package ly.generalassemb.de.datafeeds.americanExpress.ingress.model;
 
 import com.amazonaws.services.s3.AmazonS3URI;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import ly.generalassemb.de.datafeeds.americanExpress.ingress.Config;
 
 import java.io.File;
@@ -13,6 +15,7 @@ public interface FixedWidthDataFile {
     public String getFileName();
     public void toDirectory(File targetDirectory) throws Exception;
     public Map<FixedWidthDataFileComponent, String> toLoadableComponents( ) throws Exception;
+    public Map<FixedWidthDataFileComponent, String> toLoadableComponents(ObjectMapper objectMapper, CsvMapper csvMapper) throws Exception ;
     public Map<FixedWidthDataFileComponent,AmazonS3URI> toS3(Config configuration) throws Exception;
     public Map<FixedWidthDataFileComponent,String> toRedshift(Config configuration) throws Exception;
 }

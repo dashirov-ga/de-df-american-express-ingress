@@ -6,6 +6,8 @@ import com.ancientprogramming.fixedformat4j.format.impl.FixedFormatManagerImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 public class HeaderTest {
     private static final FixedFormatManager fixedFormatManager = new FixedFormatManagerImpl();
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final CsvMapper csvMapper = new CsvMapper();
     private static final String testString = "DFHDR062020170351000000ACME CORPORATION INC                                                                                                                                                                                                                                                                                                                                                                                                                       ";
     private static final Logger LOGGER = LoggerFactory.getLogger(HeaderTest.class);
     private static Header header;
@@ -39,6 +42,10 @@ public class HeaderTest {
             header = fixedFormatManager.load(Header.class, testString);
             mapper.registerModule(new JavaTimeModule());
             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            csvMapper.registerModule(new JavaTimeModule());
+            csvMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
             try {
                 LOGGER.debug(mapper.writer().writeValueAsString(header));
             } catch (JsonProcessingException e) {
@@ -50,6 +57,12 @@ public class HeaderTest {
 
     @After
     public void finalyze() {
+    }
+
+    @Test
+    public void testCsvMapper() throws JsonProcessingException {
+        String output = csvMapper.writerWithSchemaFor(Header.class).writeValueAsString(header);
+        assertEquals("DFHDR,\"2017-06-20 03:51:00\",0,\"ACME CORPORATION INC\"\n", output);
     }
 
     @Test

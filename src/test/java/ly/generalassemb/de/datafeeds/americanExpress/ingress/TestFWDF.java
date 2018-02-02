@@ -26,10 +26,20 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Ignore
 public class TestFWDF {
     private final static FixedFormatManager manager = new FixedFormatManagerImpl();
+    @Test
+    public void testRegex(){
+        String s = "^(?<account>[A-Za-z0-9]+)[.](?<type>(?:EPAPE|EPTRN|CBNOT|EMINQ|EMCBK))[#-](?<fileId>[A-Za-z0-9]+).*$";
+        Pattern p = Pattern.compile(s);
+        String f = "GENERALASSEMBLYA59662.EPTRN#E89IAK40520T6I-4251976308590106603.dat";
+        Matcher m = p.matcher(f);
+        assertTrue(m.matches());
+    }
 
     @Test
     public void testEPAPEParser() throws Exception {

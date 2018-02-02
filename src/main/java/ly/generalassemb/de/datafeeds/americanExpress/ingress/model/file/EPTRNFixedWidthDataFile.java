@@ -108,7 +108,7 @@ public class EPTRNFixedWidthDataFile extends S3CapableFWDF {
         int lineNo = 0;
         while ((line = reader.readLine())!=null){
             ++lineNo;
-            inputFile.append(line + '\n');
+            inputFile.append(line).append('\n');
             String htIndicator = line.substring(0,5); // first 5 bytes
             if ("DFHDR".equals(htIndicator)) {
                 // when you see a header, it means you need to create a new reconciled payment object
@@ -226,6 +226,22 @@ public class EPTRNFixedWidthDataFile extends S3CapableFWDF {
         Map<FixedWidthDataFileComponent,String> output = new HashMap<>();
         CsvMapper csvMapper = new CsvMapper();
         output.put(FixedWidthDataFileComponent.EPTRN_JSON_OBJECT,mapper.writeValueAsString(this));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_HEADER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader()).writeValueAsString(this.getHeader()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_PAYMENT_COMPONENT, csvMapper.writer(csvMapper.schemaFor(PaymentRecord.class).withHeader()).writeValueAsString(this.getAllPaymentRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_CHARGEBACK_COMPONENT, csvMapper.writer(csvMapper.schemaFor(ChargebackRecord.class).withHeader()).writeValueAsString(this.getAllChargebackRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_ADJUSTMENT_COMPONENT,csvMapper.writer(csvMapper.schemaFor(AdjustmentRecord.class).withHeader()).writeValueAsString(this.getAllAdjustmentRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_OTHER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(OtherRecord.class).withHeader()).writeValueAsString(this.getAllOtherRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_SOC_COMPONENT,csvMapper.writer(csvMapper.schemaFor(SOCRecord.class).withHeader()).writeValueAsString(this.getAllSOCRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_ROC_COMPONENT,csvMapper.writer(csvMapper.schemaFor(ROCRecord.class).withHeader()).writeValueAsString(this.getAllROCRecords()));
+        output.put(FixedWidthDataFileComponent.EPTRN_CSV_TRAILER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Trailer.class).withHeader()).writeValueAsString(this.getTrailer()));
+        output.put(FixedWidthDataFileComponent.EPTRN_FIXED_WIDTH_OBJECT,inputFile.toString());
+        return output;
+    }
+
+    @Override
+    public Map<FixedWidthDataFileComponent, String> toLoadableComponents(ObjectMapper objectMapper, CsvMapper csvMapper) throws Exception {
+        Map<FixedWidthDataFileComponent,String> output = new HashMap<>();
+        output.put(FixedWidthDataFileComponent.EPTRN_JSON_OBJECT, objectMapper.writeValueAsString(this));
         output.put(FixedWidthDataFileComponent.EPTRN_CSV_HEADER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader()).writeValueAsString(this.getHeader()));
         output.put(FixedWidthDataFileComponent.EPTRN_CSV_PAYMENT_COMPONENT, csvMapper.writer(csvMapper.schemaFor(PaymentRecord.class).withHeader()).writeValueAsString(this.getAllPaymentRecords()));
         output.put(FixedWidthDataFileComponent.EPTRN_CSV_CHARGEBACK_COMPONENT, csvMapper.writer(csvMapper.schemaFor(ChargebackRecord.class).withHeader()).writeValueAsString(this.getAllChargebackRecords()));

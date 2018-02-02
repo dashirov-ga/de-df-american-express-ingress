@@ -277,4 +277,69 @@ public class EPAPEFixedWidthDataFile extends S3CapableFWDF {
         return output;
     }
 
+    @Override
+    public Map<FixedWidthDataFileComponent, String> toLoadableComponents(ObjectMapper objectMapper, CsvMapper csvMapper) throws Exception {
+        Map<FixedWidthDataFileComponent, String> output = new HashMap<>();
+        // processed file is a json serialized "this"
+        output.put(FixedWidthDataFileComponent.EPAPE_JSON_OBJECT, objectMapper.writeValueAsString(this));
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_HEADER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader())
+                        .writeValueAsString(this.getPaymentList().stream().map(ReconciledPayment::getHeader).collect(Collectors.toList()))
+
+        );
+
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_PAYMENT_COMPONENT,
+
+                csvMapper.writer(csvMapper.schemaFor(PaymentRecord.class).withHeader())
+                        .writeValueAsString(this.getPaymentList()
+                                .stream()
+                                .map(ReconciledPayment::getPaymentSummary)
+                                .collect(Collectors.toList()))
+
+        );
+
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_ADJUSTMENT_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(AdjustmentRecord.class).withHeader())
+                        .writeValueAsString(
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .flatMap(merchantSubmission->merchantSubmission.getAdjustments().stream())
+                                        .collect(Collectors.toList())
+                        )
+
+        );
+
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_SOC_COMPONENT,
+
+                csvMapper.writer(csvMapper.schemaFor(SOCRecord.class).withHeader()).
+                        writeValueAsString(
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .map(MerchantSubmission::getSocRecord)
+                                        .collect(Collectors.toList())
+                        )
+
+        );
+
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_ROC_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ROCRecord.class).withHeader())
+                        .writeValueAsString(
+                                this.getPaymentList().stream()
+                                        .flatMap(reconciledPayment->reconciledPayment.getMerchantSubmissions().stream())
+                                        .flatMap(merchantSubmission -> merchantSubmission.getRocRecords().stream())
+                                        .collect(Collectors.toList())
+                        )
+
+        );
+
+        output.put(FixedWidthDataFileComponent.EPAPE_CSV_TRAILER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(Trailer.class).withHeader())
+                        .writeValueAsString(this.getPaymentList().stream().map(ReconciledPayment::getTrailer).collect(Collectors.toList()))
+
+        );
+        // input file is a collection of all file lines "as-is"
+        output.put(FixedWidthDataFileComponent.EPAPE_FIXED_WIDTH_OBJECT, inputFile.toString());
+        return output;
+    }
+
 }

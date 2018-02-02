@@ -11,6 +11,10 @@ import java.util.List;
  * Created by davidashirov on 3/12/17.
  */
 public class RedshiftManifest {
+    public static String getContentType(){
+        return "application/json";
+    }
+
     private List<RedshiftManifestEntry> entries = new ArrayList<>();
 
     public void addEntry(RedshiftManifestEntry entry) {

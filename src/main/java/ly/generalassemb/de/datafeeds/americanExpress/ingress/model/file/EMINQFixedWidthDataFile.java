@@ -132,4 +132,16 @@ public class EMINQFixedWidthDataFile extends S3CapableFWDF {
         output.put(FixedWidthDataFileComponent.EMINQ_FIXED_WIDTH_OBJECT,inputFile.toString());
         return output;
     }
+
+    @Override
+    public Map<FixedWidthDataFileComponent, String> toLoadableComponents(ObjectMapper objectMapper, CsvMapper csvMapper) throws Exception {
+        Map<FixedWidthDataFileComponent,String> output = new HashMap<>();
+        // processed file is a json serialized "this"
+        output.put(FixedWidthDataFileComponent.EMINQ_JSON_OBJECT,objectMapper.writeValueAsString(this));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_HEADER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Header.class).withHeader()).writeValueAsString(this.header));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_TRAILER_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Trailer.class).withHeader()).writeValueAsString(this.trailer));
+        output.put(FixedWidthDataFileComponent.EMINQ_CSV_INQUIRY_COMPONENT,csvMapper.writer(csvMapper.schemaFor(Detail.class).withHeader()).writeValueAsString(this.details));
+        output.put(FixedWidthDataFileComponent.EMINQ_FIXED_WIDTH_OBJECT,inputFile.toString());
+        return output;
+    }
 }

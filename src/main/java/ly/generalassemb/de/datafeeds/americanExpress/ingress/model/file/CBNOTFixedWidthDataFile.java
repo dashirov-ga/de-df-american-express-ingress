@@ -155,4 +155,33 @@ public class CBNOTFixedWidthDataFile extends S3CapableFWDF {
         output.put(FixedWidthDataFileComponent.CBNOT_FIXED_WIDTH_OBJECT,inputFile.toString());
         return output;
     }
+
+    @Override
+    public Map<FixedWidthDataFileComponent, String> toLoadableComponents(ObjectMapper objectMapper, CsvMapper csvMapper) throws Exception {
+        Map<FixedWidthDataFileComponent,String> output = new HashMap<>();
+        // processed file is a json serialized "this"
+        output.put(FixedWidthDataFileComponent.CBNOT_JSON_OBJECT,objectMapper.writeValueAsString(this));
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_HEADER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Header.class).withHeader())
+                        .writeValueAsString(this.getHeader())
+
+        );
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_TRAILER_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Trailer.class).withHeader())
+                        .writeValueAsString(this.getTrailer())
+
+        );
+
+
+        output.put(FixedWidthDataFileComponent.CBNOT_CSV_CHARGEBACK_NOTIFICATION_COMPONENT,
+                csvMapper.writer(csvMapper.schemaFor(ly.generalassemb.de.datafeeds.americanExpress.ingress.model.CBNOT.Detail.class).withHeader())
+                        .writeValueAsString(this.getDetails())
+
+        );
+
+        output.put(FixedWidthDataFileComponent.CBNOT_FIXED_WIDTH_OBJECT,inputFile.toString());
+        return output;
+    }
 }

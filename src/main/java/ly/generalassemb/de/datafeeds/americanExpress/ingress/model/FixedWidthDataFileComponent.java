@@ -2,10 +2,6 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.model;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public enum FixedWidthDataFileComponent {
     EPTRN_FIXED_WIDTH_OBJECT("EPTRN", "text/plain", ".dat", false, false,"american_express_eptrn_file_ingested",
             ImmutableList.builder().add("nexus").build()),

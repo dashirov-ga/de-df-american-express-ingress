@@ -32,8 +32,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class S3CapableFWDF implements FixedWidthDataFile {
+
     @JsonIgnore
-    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)[#-](?<fileId>\\p{Alnum}+)");
+    private static final Pattern fileNamePattern = Pattern.compile("^(?<account>\\p{Alnum}+)\\.(?<type>EPAPE|EPTRN|CBNOT|EMINQ|EMCBK)[#-](?<fileId>\\p{Alnum}+).*");
 
     @JsonIgnore
     @Override
@@ -214,6 +215,7 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
                 configuration.get().getString("sink.redshift.jdbc.usr"),
                 configuration.get().getString("sink.redshift.jdbc.pwd")
         );
+        LOGGER.debug("Autocommit: {}", c.getAutoCommit());
         c.setSchema(configuration.get().getString("sink.redshift.jdbc.schema"));
         PreparedStatement session_setup = c.prepareStatement("SET SEARCH_PATH TO " + configuration.get().getString("sink.redshift.jdbc.schema") + ",public;");
         session_setup.execute();
@@ -238,6 +240,8 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
                     // First, always try to create a temporary table, similar in structure to the destination table
                     String creteTemp = "CREATE TEMPORARY TABLE temp_" + component.getDefaultTableName() + "( LIKE " + component.getDefaultTableName() + "  );";
                     LOGGER.debug(creteTemp);
+
+
                     PreparedStatement s = c.prepareStatement(creteTemp);
                     s.execute();
 
@@ -269,16 +273,19 @@ public abstract class S3CapableFWDF implements FixedWidthDataFile {
                     LOGGER.debug(insertNew);
                     s = c.prepareStatement(insertNew);
                     s.execute();
-
                     out.put(component,targetTable);
 
+                    String dropTempTable = "DROP TABLE IF EXISTS  temp_" + component.getDefaultTableName();
+                    s = c.prepareStatement(dropTempTable);
+                    s.execute();
+                    LOGGER.debug("Temp table dropped");
+
                 } catch (SQLException e) {
+                    LOGGER.error(e.toString());
                     throw new RuntimeException(e);
                 }
             }
         });
-        c.commit();
-        c.setAutoCommit(true);
         return out;
     }
     public void toDirectory(String directoryPath) throws Exception {

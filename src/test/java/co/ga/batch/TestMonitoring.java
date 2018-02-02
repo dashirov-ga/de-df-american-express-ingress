@@ -61,7 +61,7 @@ public class TestMonitoring {
                             @Override
                             public void onFailure(int i, List<TrackerPayload> list) {
                                 int events_left = eventCounter.getAndAdd(-1 * (i + list.size()));
-                                LOGGER.info("Unsuccessful delivery: good {} + bad {}; left to process {}", i, list.size(), events_left);
+                                LOGGER.info(String.format("Unsuccessful delivery: good {} + bad {}; left to process {}", i, list.size(), events_left));
                                 LOGGER.error(list.toString());
                             }
                         }

@@ -413,29 +413,27 @@ public class SOCRecord {
 
     public UUID uniqueCode() {
         return UUID.nameUUIDFromBytes(
-                new StringBuilder()
-                        .append(settlementSeAccountNumber)
-                        .append(settlementAccountNameCode)
-                        .append(settlementDate)
-                        .append(submissionSeAccountNumber)
-                        .append(recordCode)
-                        .append(recordSubCode)
-                        .append(socDate)
-                        .append(submissionCalculatedGrossAmount)
-                        .append(submissionDeclaredGrossAmount)
-                        .append(discountAmount)
-                        .append(settlementNetAmount)
-                        .append(serviceFeeRate)
-                        .append(settlementGrossAmount)
-                        .append(rocCalculatedCount)
-                        .append(settlementTaxAmount)
-                        .append(settlementTaxRate)
-                        .append(submissionCurrencyCode)
-                        .append(submissionNumber)
-                        .append(submissionSeBranchNumber)
-                        .append(submissionMethodCode)
-                        .append(exchangeRate)
-                        .toString().getBytes()
+                (settlementSeAccountNumber +
+                        settlementAccountNameCode +
+                        settlementDate +
+                        submissionSeAccountNumber +
+                        recordCode +
+                        recordSubCode +
+                        socDate +
+                        submissionCalculatedGrossAmount +
+                        submissionDeclaredGrossAmount +
+                        discountAmount +
+                        settlementNetAmount +
+                        serviceFeeRate +
+                        settlementGrossAmount +
+                        rocCalculatedCount +
+                        settlementTaxAmount +
+                        settlementTaxRate +
+                        submissionCurrencyCode +
+                        submissionNumber +
+                        submissionSeBranchNumber +
+                        submissionMethodCode +
+                        exchangeRate).getBytes()
         );
     }
 

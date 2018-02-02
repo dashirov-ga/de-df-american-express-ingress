@@ -3,6 +3,8 @@ package ly.generalassemb.de.datafeeds.americanExpress.ingress.util;
 import org.junit.Test;
 import org.apache.commons.codec.binary.Base64;
 
+import java.util.Arrays;
+
 
 /**
  * Created by dashirov on 5/13/17.
@@ -41,7 +43,7 @@ public class KeyTest {
                 .replace("-----BEGIN RSA PRIVATE KEY-----\n", "")
                 .replace("-----END RSA PRIVATE KEY-----", "");
         byte[] privateKey = Base64.decodeBase64(openSSHKey);
-        System.out.println(privateKey);
+        System.out.println(Arrays.toString(privateKey));
 
 
         String public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/dBKcPNLVyLqNS0YzmNdRD88+PR6jei4oE6kWJJGXUUxJcLJ0sdV+qKQ74AhmvZHhB3uYmws/KCzQ2cRwBRopveCzZQlHsSyl1ADn2KgUV1um4zFPF4gPj+Zjz7tVfAeGR32XS5/qvyibmMgliv0Lx3AOe83etFMiA7z2IDmQQGOgqFfFejA8qInpb9PmrNmImskfwIPBTRaeyKrMQttjFGh7sAbEg0NArYYxenf3T4+ksCYUYTAbsBTlziq17x9Is3tFeoa+vO1qBd4LAhxEt5TFXtdOa/Kc36nxbDpyqD2SsqW2UVUCmANK9RL0Hsr+dnssMB91gqs+WtOSjMEN root@8dd297bf7a66";
